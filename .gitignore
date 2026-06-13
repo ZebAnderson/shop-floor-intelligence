@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Secrets — never commit API keys
+.env
+.env.*
+!.env.example
+
+# Next.js / build output
+.next/
+out/
+dist/
+build/
+
+# Vercel
+.vercel
+
+# Logs / OS
+*.log
+.DS_Store
+
+# Test/coverage
+coverage/
