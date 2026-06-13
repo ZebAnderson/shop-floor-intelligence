@@ -31,3 +31,8 @@ appends a general *rule* (not a narration) so a solved mistake is never re-deriv
 ## UX pass + obstruction (post-launch)
 - Ground UX work in Nielsen/NN-g 10 usability heuristics + 2026 dark-UI practice: status visibility (KPI strip + pulse), recognition-not-recall (a status legend — never color alone), clear hierarchy (event chips + one hero, readable sans for long prose while keeping the monospace identity for chrome/data), and accessibility (ARIA roles/labels, aria-live, focus-visible, AA contrast).
 - Camera-obstruction is a first-class state: add "obstructed" to FrameState and a distinct "feed_obstructed" anomaly so a blocked lens is a CAMERA alert, never a phantom stoppage. Detect three ways — Claude prompt (vision), local pixel variance (offline), and an instant in-browser variance check in /live that skips the paid call when the view is unusable.
+
+## Enhancement research + 3D demo
+- Run a research workflow against docs/UX-GUIDELINES.md as a rubric; tier findings now/next/later and keep an explicit CUT list (Performance/Quality OEE, TEEP, true MTTA, RBAC, plain-English rules DSL) so "no bloat" is enforced, not aspirational.
+- Highest-leverage wins reframe data already held: render Anomaly.frames as a filmstrip (proof the agent looked), consequence-based alert sort (ISA-18.2), time-in-state stacked bar, observed-window availability (label it a proxy, not OEE-grade), and a /live last-sweep heartbeat.
+- Enhanced 3D demo = self-contained public/loop3d.html, vanilla Three.js r184 via jsdelivr import map (no R3F/Babylon/bloom). The one gotcha vs 2D: WebGLRenderer must use preserveDrawingBuffer:true or /live's canvas readback returns blank. Keep loop.html as the zero-dep offline fallback (CDN is a single point of failure).
