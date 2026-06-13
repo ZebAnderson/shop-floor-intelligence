@@ -27,3 +27,7 @@ appends a general *rule* (not a narration) so a solved mistake is never re-deriv
 - Browser-capture + server-classify is the portability key: getUserMedia in the client (works on https + localhost) + a Claude /api/vision route works identically local and on Vercel; server-side camera capture would never port.
 - Deploy flow: `vercel link --yes`, set ANTHROPIC_API_KEY via `vercel env add <name> production`, then `vercel --prod --yes`. Landing page builds static (no key needed); only the function needs the key at runtime.
 - Serverless cold start + Opus 4.8 latency can briefly exceed a 60s client timeout on the first call; healthy on retry. Consider a warm-up ping before a live demo.
+
+## UX pass + obstruction (post-launch)
+- Ground UX work in Nielsen/NN-g 10 usability heuristics + 2026 dark-UI practice: status visibility (KPI strip + pulse), recognition-not-recall (a status legend — never color alone), clear hierarchy (event chips + one hero, readable sans for long prose while keeping the monospace identity for chrome/data), and accessibility (ARIA roles/labels, aria-live, focus-visible, AA contrast).
+- Camera-obstruction is a first-class state: add "obstructed" to FrameState and a distinct "feed_obstructed" anomaly so a blocked lens is a CAMERA alert, never a phantom stoppage. Detect three ways — Claude prompt (vision), local pixel variance (offline), and an instant in-browser variance check in /live that skips the paid call when the view is unusable.

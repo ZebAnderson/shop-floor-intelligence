@@ -22,6 +22,11 @@ or stopped machine in minutes, with a proposed next step already drafted.
    action** ("Line 2 idle ~6 min — likely tool change; notify cell lead") plus a briefing
    entry. Utilization/cycle stats are shown as supporting context.
 
+**Live + resilient.** `/live` runs the same loop on a real **Logitech Brio** (or a
+built-in demo loop): browser capture → Claude Opus 4.8 vision → live watch-catch-draft.
+If the camera is blocked or covered, the agent raises a distinct **camera-obstructed**
+alert and checks the camera — it never misreports a blocked lens as a machine stoppage.
+
 ## What this is *not*
 Not an image analyzer, not a dashboard — both are banned categories. Frame classification
 (running / idle / other) is **plumbing** the agent uses; the product is the autonomous
