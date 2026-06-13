@@ -1,0 +1,4 @@
+{ "id": 5, "milestone": "Deployed + responding", "passedAt": "2026-06-13T20:30:43Z", "verifier": "PASS",
+  "check": "curl -fsS -w %{http_code} https://shop-floor-intelligence.vercel.app/",
+  "evidence": "200; full watch->catch->draft flow + Claude-authored action; /live 200; prod /api/vision real Opus 4.8 classifies running/idle/stopped",
+  "url": "https://shop-floor-intelligence.vercel.app" }

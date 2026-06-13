@@ -1,0 +1,2 @@
+{ "id": 4, "milestone": "UI surfaces the result", "passedAt": "2026-06-13T20:30:43Z", "verifier": "PASS",
+  "check": "npm run test:smoke", "evidence": "2/2; renderAgentReport surfaces anomaly-first briefing + per-machine state; workflow M4 grade PASS" }

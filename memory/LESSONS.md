@@ -18,3 +18,12 @@ appends a general *rule* (not a narration) so a solved mistake is never re-deriv
 ## M3 — Agent loop (the product)
 - The agent is the headline: watch -> catch sustained stoppage (>= N consecutive stopped frames) -> investigate surrounding frames -> draft action + briefing, with utilization as supporting context. Keep classification as plumbing reached only via classifyFrame(frameRef).
 - Inject the classifier into runAgent so tests run offline/deterministic (local backend) while production can pass the Claude backend. Never read trueState in the agent.
+
+## M4 — UI (agent report)
+- Single source of truth: one pure renderAgentReport(report) string used by BOTH the page (dangerouslySetInnerHTML) and the smoke test — page and test can never drift. Lead with the caught stoppage as the hero; utilization grid is clearly-secondary supporting context.
+- Statically prerender from a committed data/report.json (no runtime fs, no key) so the deployed URL always responds; bake it with the Claude backend + Claude-AUTHORED action so real Opus 4.8 is visible on the static page.
+
+## M5 — Deploy (Vercel)
+- Browser-capture + server-classify is the portability key: getUserMedia in the client (works on https + localhost) + a Claude /api/vision route works identically local and on Vercel; server-side camera capture would never port.
+- Deploy flow: `vercel link --yes`, set ANTHROPIC_API_KEY via `vercel env add <name> production`, then `vercel --prod --yes`. Landing page builds static (no key needed); only the function needs the key at runtime.
+- Serverless cold start + Opus 4.8 latency can briefly exceed a 60s client timeout on the first call; healthy on retry. Consider a warm-up ping before a live demo.
