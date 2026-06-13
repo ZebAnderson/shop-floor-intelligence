@@ -10,14 +10,18 @@ import { drawDemoFloor } from "@/lib/demoFloor.ts";
 import {
   loadConfig,
   saveConfig,
+  clearConfig,
   clampRegion,
+  normalizeMachines,
   type MachineRegion,
+  type Region,
 } from "@/lib/machineConfig.ts";
 
 const CAP_W = 640;
 const CAP_H = 480;
+// Shown as a placeholder only (the field starts empty so nothing canned is sent).
 const EXAMPLE =
-  "The machine on the left is Lathe 1, the one in the middle is a sander, and the blue one on the right is a CNC machine.";
+  "e.g. the green lathe is on the left, then a steel mill, an orange press, and the blue CNC on the right.";
 
 interface Source {
   id: string;
@@ -50,7 +54,7 @@ export default function SetupPage() {
   const [sourceId, setSourceId] = useState("demo");
   const [previewing, setPreviewing] = useState(false);
   const [frame, setFrame] = useState<string | null>(null);
-  const [description, setDescription] = useState(EXAMPLE);
+  const [description, setDescription] = useState(""); // starts empty; EXAMPLE is the placeholder
   const [machines, setMachines] = useState<MachineRegion[]>([]);
   const [identifying, setIdentifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +70,9 @@ export default function SetupPage() {
   const wantListenRef = useRef(false); // keep restarting until the user taps stop
   const finalRef = useRef(""); // accumulated finalized transcript
   const baseRef = useRef(""); // description text present before dictation started
+  const addSeqRef = useRef(0); // monotonic so manually-added machines never collide
+  const frameWrapRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{ id: string; mode: "move" | "resize"; px: number; py: number; region: Region } | null>(null);
 
   const usingVideo = sourceId !== "demo";
 
@@ -189,11 +196,41 @@ export default function SetupPage() {
     setMachines((ms) => ms.filter((m) => m.id !== id));
   }
   function addMachine() {
-    const n = machines.length + 1;
+    addSeqRef.current += 1; // monotonic — never reused, even after removals
+    const seq = addSeqRef.current;
+    const id =
+      typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `m-${seq}-${Date.now()}`;
     setMachines((ms) => [
       ...ms,
-      { id: `m-${n}-${ms.length}`, name: `Machine ${n}`, kind: "machine", region: clampRegion({ x: 0.4, y: 0.4, w: 0.2, h: 0.2 }) },
+      { id, name: `New machine ${seq}`, kind: "machine", region: clampRegion({ x: 0.4, y: 0.4, w: 0.2, h: 0.2 }) },
     ]);
+  }
+
+  // Drag a box to move it, or drag its corner handle to resize — region edits the
+  // operator can actually make when the grounding isn't perfect.
+  const onPointerMove = useCallback((e: PointerEvent) => {
+    const d = dragRef.current;
+    const wrap = frameWrapRef.current;
+    if (!d || !wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const dx = (e.clientX - d.px) / rect.width;
+    const dy = (e.clientY - d.py) / rect.height;
+    const region =
+      d.mode === "move"
+        ? clampRegion({ x: d.region.x + dx, y: d.region.y + dy, w: d.region.w, h: d.region.h })
+        : clampRegion({ x: d.region.x, y: d.region.y, w: d.region.w + dx, h: d.region.h + dy });
+    setMachines((ms) => ms.map((m) => (m.id === d.id ? { ...m, region } : m)));
+  }, []);
+  const endDrag = useCallback(() => {
+    dragRef.current = null;
+    window.removeEventListener("pointermove", onPointerMove);
+  }, [onPointerMove]);
+  function startDrag(e: React.PointerEvent, m: MachineRegion, mode: "move" | "resize") {
+    e.preventDefault();
+    e.stopPropagation();
+    dragRef.current = { id: m.id, mode, px: e.clientX, py: e.clientY, region: { ...m.region } };
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", endDrag, { once: true });
   }
 
   function buildRecognizer(): SRLike | null {
@@ -245,7 +282,7 @@ export default function SetupPage() {
       setError("Voice input isn't supported in this browser — type the description instead.");
       return;
     }
-    baseRef.current = description.trim() === EXAMPLE ? "" : description.trim();
+    baseRef.current = description.trim();
     finalRef.current = "";
     srRef.current = sr;
     wantListenRef.current = true;
@@ -262,8 +299,15 @@ export default function SetupPage() {
       setError("Identify or add at least one machine before saving.");
       return;
     }
-    saveConfig(machines, labelFor(sourceId));
+    // normalize() guarantees unique ids + clamped regions before persisting.
+    saveConfig(normalizeMachines(machines), labelFor(sourceId));
     router.push("/live");
+  }
+
+  function clearSaved() {
+    clearConfig();
+    setMachines([]);
+    setExisting(false);
   }
 
   useEffect(() => stopPreview, [stopPreview]);
@@ -312,18 +356,24 @@ export default function SetupPage() {
           {!frame && <canvas ref={demoRef} width={CAP_W} height={CAP_H} style={{ display: !usingVideo && previewing ? "block" : "none" }} />}
           {!frame && !previewing && <div className="feed-empty">Start a preview, then capture the frame the agent will watch.</div>}
           {frame && (
-            <div className="frame-wrap">
-              <img className="frame-img" src={frame} alt="captured floor frame" />
+            <div className="frame-wrap" ref={frameWrapRef}>
+              <img className="frame-img" src={frame} alt="captured floor frame" draggable={false} />
               {machines.map((m) => (
                 <div
                   key={m.id}
                   className="mbox"
+                  onPointerDown={(e) => startDrag(e, m, "move")}
+                  title="Drag to move · drag the corner to resize"
                   style={{ left: `${m.region.x * 100}%`, top: `${m.region.y * 100}%`, width: `${m.region.w * 100}%`, height: `${m.region.h * 100}%` }}
                 >
                   <span className="mbox-label">{m.name}</span>
+                  <span className="mbox-handle" onPointerDown={(e) => startDrag(e, m, "resize")} />
                 </div>
               ))}
             </div>
+          )}
+          {frame && machines.length > 0 && (
+            <p className="sub">Drag a box to move it, or its bottom-right corner to resize.</p>
           )}
         </div>
       </section>
@@ -361,6 +411,7 @@ export default function SetupPage() {
           </div>
           <div className="controls">
             <button onClick={addMachine}>+ Add machine</button>
+            {existing && <button onClick={clearSaved}>Clear saved floor</button>}
             <button className="cta" onClick={save}>Save &amp; monitor →</button>
           </div>
         </section>

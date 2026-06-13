@@ -112,7 +112,10 @@ export default function LivePage() {
     const rctx = rc.getContext("2d");
     if (!rctx) return null;
     rctx.drawImage(cap, t.region.x * CAP_W, t.region.y * CAP_H, t.region.w * CAP_W, t.region.h * CAP_H, 0, 0, RC_W, RC_H);
-    if (isObstructed(rctx, RC_W, RC_H)) return { state: "obstructed", viaClaude: false };
+    // Instant obstruction skip only for a full-frame source; for cropped per-machine
+    // regions let Claude judge (a uniform machine body shouldn't read as "blocked").
+    const fullFrame = t.region.w >= 0.999 && t.region.h >= 0.999;
+    if (fullFrame && isObstructed(rctx, RC_W, RC_H)) return { state: "obstructed", viaClaude: false };
     const imageBase64 = rc.toDataURL("image/jpeg", 0.6).split(",")[1];
     try {
       const res = await fetch("/api/vision", {
@@ -289,10 +292,17 @@ export default function LivePage() {
       </div>
 
       {config ? (
-        <p className="note">
-          Monitoring <b>{config.machines.length}</b> labeled machine{config.machines.length === 1 ? "" : "s"}:{" "}
-          {config.machines.map((m) => m.name).join(", ")}. <a href="/setup">Re-configure →</a>
-        </p>
+        <>
+          <p className="note">
+            Monitoring <b>{config.machines.length}</b> labeled machine{config.machines.length === 1 ? "" : "s"}:{" "}
+            {config.machines.map((m) => m.name).join(", ")}. <a href="/setup">Re-configure →</a>
+          </p>
+          {config.sourceLabel && config.sourceLabel !== labelFor(sourceId) && (
+            <p className="note" style={{ color: "var(--idle)" }}>
+              ⚠ This floor was set up against “{config.sourceLabel}”, but the selected source is “{labelFor(sourceId)}”. The labeled regions may not line up — re-configure if the boxes are off.
+            </p>
+          )}
+        </>
       ) : (
         <p className="note">
           No machines set up — the agent will watch the whole frame as one source.{" "}

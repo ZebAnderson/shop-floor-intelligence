@@ -28,7 +28,7 @@ export async function draftAnomalyReasoning(
     messages: [
       {
         role: "user",
-        content: `Caught stoppage: ${anomaly.machineName} (${anomaly.machineId}) stopped ~${anomaly.durationMin} min, first detected at ${anomaly.detectedAt}. The agent investigated ${anomaly.frames.length} surrounding frames. Floor context: ${context}. Draft the action + briefing.`,
+        content: `Caught stoppage: ${anomaly.machineName} (${anomaly.machineId}) stopped ~${anomaly.durationLabel}, first detected at ${anomaly.detectedAt}. The agent investigated ${anomaly.frames.length} surrounding frames. Floor context: ${context}. Draft the action + briefing.`,
       },
     ],
   });

@@ -6,26 +6,12 @@
 //   - claude: Claude Opus 4.8 vision. The production / live-demo path; works on the
 //             synthetic stack-light fixtures AND on real machine / webcam footage.
 //
-// pngjs/fs only enter the module graph through the dynamically-imported local
-// backend, so a serverless route that uses only the Claude path stays lean.
-// This is deliberately framed as plumbing: the product is the agent loop that
-// reasons over these classifications, not the classifier itself.
-import { readFileSync } from "node:fs";
-import { join, dirname, normalize, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+// This module is the LEAN, fs-free vision path: only the Claude base64 classifier +
+// helpers. The filesystem path (reads a frameRef, dynamic-imports the pngjs local
+// backend) lives in lib/visionFs.ts, so the /api/vision serverless bundle — which
+// imports only classifyImageClaude — never pulls node:fs / pngjs in.
+// Classification is plumbing: the product is the agent loop that reasons over it.
 import type { FrameState } from "./types.ts";
-
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-
-// frameRef must resolve inside the repo (it is only ever sourced from build-time
-// fixtures, never from HTTP input — the route uses the base64 path instead).
-function resolveFrame(frameRef: string): string {
-  const p = normalize(join(repoRoot, frameRef));
-  if (p !== repoRoot && !p.startsWith(repoRoot + sep)) {
-    throw new Error(`vision: frameRef escapes repo root: ${frameRef}`);
-  }
-  return p;
-}
 
 export type VisionBackend = "local" | "claude";
 
@@ -83,18 +69,4 @@ export async function classifyImageClaude(
   });
   const text = msg.content.map((c) => (c.type === "text" ? c.text : "")).join("");
   return parseState(text);
-}
-
-export async function classifyFrameClaude(frameRef: string): Promise<FrameState> {
-  return classifyImageClaude(readFileSync(resolveFrame(frameRef)).toString("base64"));
-}
-
-export async function classifyFrame(
-  frameRef: string,
-  opts?: { backend?: VisionBackend },
-): Promise<FrameState> {
-  const backend = opts?.backend ?? currentBackend();
-  if (backend === "claude") return classifyFrameClaude(frameRef);
-  const { classifyFrameLocal } = await import("./visionLocal.ts");
-  return classifyFrameLocal(frameRef);
 }

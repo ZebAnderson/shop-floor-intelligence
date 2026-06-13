@@ -57,7 +57,8 @@ export interface Anomaly {
   machineName: string;
   event: AnomalyKind;
   detectedAt: string; // ISO timestamp of the first frame in the run
-  durationMin: number; // sustained duration in minutes
+  durationMin: number; // sustained duration in minutes (real elapsed; may be fractional)
+  durationLabel: string; // human-readable duration, e.g. "6s" or "3 min"
   ongoing: boolean; // still in this state at the latest frame
   frames: string[]; // frameRefs the agent inspected
   draftedAction: string; // the next step the agent proposes

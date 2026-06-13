@@ -89,7 +89,7 @@ export function renderAgentReport(report: AgentReport): string {
             : "";
           return `
       <article class="panel alert ${block ? "alert-block" : "alert-stop"} section" data-machine="${esc(a.machineId)}">
-        <div class="alert-head">${eventChip(a.event)}${a.ongoing ? `<span class="chip chip-ongoing">Ongoing</span>` : ""}<span class="when"><span class="live-dot ${block ? "obstructed" : "stopped"}" aria-hidden="true"></span>${esc(hhmm(a.detectedAt))} · ${esc(a.machineName)} (${esc(a.machineId)}) · ~${a.durationMin} min</span></div>
+        <div class="alert-head">${eventChip(a.event)}${a.ongoing ? `<span class="chip chip-ongoing">Ongoing</span>` : ""}<span class="when"><span class="live-dot ${block ? "obstructed" : "stopped"}" aria-hidden="true"></span>${esc(hhmm(a.detectedAt))} · ${esc(a.machineName)} (${esc(a.machineId)}) · ~${esc(a.durationLabel ?? `${Math.max(1, Math.round(a.durationMin))} min`)} down</span></div>
         <p class="headline">${esc(a.briefing)}</p>
         ${filmstrip}
         <div class="action">

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-13T21:42:22.680Z",
+  "generatedAt": "2026-06-13T23:07:53.471Z",
   "windowStart": "2026-06-13T08:00:00.000Z",
   "windowEnd": "2026-06-13T08:07:00.000Z",
   "anomalies": [
@@ -9,6 +9,7 @@
       "event": "stoppage",
       "detectedAt": "2026-06-13T08:03:00.000Z",
       "durationMin": 3,
+      "durationLabel": "3 min",
       "ongoing": false,
       "frames": [
         "fixtures/frames/M-102_02.png",
@@ -16,8 +17,8 @@
         "fixtures/frames/M-102_04.png",
         "fixtures/frames/M-102_05.png"
       ],
-      "draftedAction": "M-102 stopped ~3min at 08:03Z, 63% util consistent with cyclic interruptions (likely planned tool change or operator chip-clear/in-process gauging) rather than crash—no spindle-overload or alarm indicators in frames and no debris/collision signature. Next: dispatch operator to confirm M-102 is in MDI/tool-change hold vs. faulted; check controller for active alarm code and verify spindle/turret position. If no operator present within 2 min or alarm active, escalate to supervisor and tag for maintenance; if planned tool change, log expected restart and clear.",
-      "briefing": "08:03Z M-102 lathe stopped ~3min (util 63%)—probable planned tool change/operator hold, no crash signature; operator dispatched to confirm alarm-free restart, escalate if faulted."
+      "draftedAction": "M-102 stopped ~3min at 08:03Z with 63% util (vs M-101 at 100%) suggests intermittent run consistent with operator-attended cycle gaps or planned manual tool/part change rather than a hard fault or crash (no cascade, adjacent M-101 unaffected). Next step: dispatch operator/lead to M-102 to confirm spindle/chuck status and verify no chip jam or tool breakage; if no operator present, page assigned operator and check for active alarm on HMI. Resume cycle if clear; if alarm or visible jam/crash, lock out and escalate to maintenance with photo of chuck/turret.",
+      "briefing": "08:03Z M-102 Lathe 3min stop (util 63%) — likely manual tool/part change or operator gap, not fault; lead verifying chuck/turret + HMI alarm, resume or escalate."
     }
   ],
   "machines": [
@@ -89,7 +90,7 @@
     }
   ],
   "briefing": [
-    "08:03Z M-102 lathe stopped ~3min (util 63%)—probable planned tool change/operator hold, no crash signature; operator dispatched to confirm alarm-free restart, escalate if faulted.",
+    "08:03Z M-102 Lathe 3min stop (util 63%) — likely manual tool/part change or operator gap, not fault; lead verifying chuck/turret + HMI alarm, resume or escalate.",
     "CNC Mill (M-101): running, 100% utilization (8/8 frames).",
     "Lathe (M-102): running, 63% utilization (5/8 frames).",
     "Press Brake (M-103): idle, 63% utilization (5/8 frames)."

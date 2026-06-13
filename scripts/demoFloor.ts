@@ -30,19 +30,20 @@ const lighter = (c: readonly [number, number, number]): [number, number, number]
   Math.min(255, Math.round(c[2] * 1.25)),
 ];
 
-fill(0, 0, W, H, [14, 17, 22]); // background
-fill(0, H * 0.74, W, H, [17, 21, 27]); // floor
+fill(0, 0, W, H, [20, 25, 34]); // background
+fill(0, H * 0.74, W, H, [34, 42, 51]); // floor
 
-const machines: { cx: number; color: readonly [number, number, number] }[] = [
-  { cx: 0.18, color: [90, 125, 90] }, // lathe (greenish), left
-  { cx: 0.5, color: [91, 98, 107] }, // sander (gray), middle
-  { cx: 0.82, color: [63, 111, 174] }, // CNC (blue), right
+const machines: { cx: number; color: readonly [number, number, number]; w: number; h: number }[] = [
+  { cx: 0.13, color: [52, 179, 106], w: 0.2, h: 0.26 }, // green lathe (wide)
+  { cx: 0.38, color: [170, 182, 196], w: 0.12, h: 0.36 }, // steel mill (tall)
+  { cx: 0.62, color: [224, 133, 58], w: 0.15, h: 0.3 }, // orange press
+  { cx: 0.87, color: [63, 134, 214], w: 0.16, h: 0.36 }, // blue CNC
 ];
 
 for (const m of machines) {
   const cx = m.cx * W;
-  const bw = W * 0.2;
-  const bh = H * 0.32;
+  const bw = W * m.w;
+  const bh = H * m.h;
   const x = cx - bw / 2;
   const baseY = H * 0.72;
   const y = baseY - bh;

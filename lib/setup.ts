@@ -33,7 +33,7 @@ export async function identifyMachines(
 
   const msg = await client.messages.create({
     model: "claude-opus-4-8",
-    max_tokens: 1024,
+    max_tokens: 1536,
     system: SYSTEM_PROMPT,
     messages: [
       {

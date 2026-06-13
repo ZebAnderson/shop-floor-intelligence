@@ -6,7 +6,7 @@
 // reasoning lives in lib/reportCore.ts (reused by the live page); this module
 // adds the vision step. Classification is plumbing; this watch -> catch -> draft
 // loop is what the demo leads on.
-import { classifyFrame } from "./vision.ts";
+import { classifyFrame } from "./visionFs.ts";
 import { buildReport } from "./reportCore.ts";
 import type {
   ParsedRecord,

@@ -5,7 +5,8 @@
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { classifyFrame, currentBackend } from "../lib/vision.ts";
+import { classifyFrame } from "../lib/visionFs.ts";
+import { currentBackend } from "../lib/vision.ts";
 import type { MachineState } from "../lib/types.ts";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
