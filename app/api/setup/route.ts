@@ -31,9 +31,7 @@ export async function POST(req: Request) {
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(raw)) {
     return NextResponse.json({ error: "imageBase64 is not valid base64" }, { status: 400 });
   }
-  if (!description) {
-    return NextResponse.json({ error: "description is required" }, { status: 400 });
-  }
+  // description is OPTIONAL — when omitted, the agent detects + names every machine itself.
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "Vision is not configured on the server" }, { status: 503 });
   }

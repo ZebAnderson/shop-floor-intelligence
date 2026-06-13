@@ -423,9 +423,10 @@ export default function SetupPage() {
           </button>
         </div>
         <p className="note">
-          Describe a few machines at a time and click Identify — they're <b>added</b> to the
-          list below (your existing machines stay), and the field clears for the next batch.
-          Re-describing a machine by the same name updates it.
+          <b>Leave it blank</b> to auto-detect and name every machine, or describe some to set
+          the names you want. Either way, Identify finds <b>all</b> the machines in the frame
+          and <b>adds</b> them to the list below (existing ones stay); the field clears for the
+          next batch, and re-describing a machine by the same name updates it.
         </p>
       </section>
 

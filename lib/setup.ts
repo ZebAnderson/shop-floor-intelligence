@@ -12,16 +12,20 @@ export interface DetectedMachine {
 }
 
 const SYSTEM_PROMPT =
-  "You are setting up an autonomous shop-floor monitoring agent. You receive a still " +
-  "frame from a FIXED shop camera and the operator's plain-English description of the " +
-  "machines in view. Identify EACH machine the operator names and locate it in the image " +
-  "using their spatial and visual cues (left / middle / right, 'the blue one', etc.). " +
-  "Return ONLY a JSON array, one object per machine, no prose:\n" +
-  '[{"name": "<the operator\'s name, e.g. Lathe 1>", "kind": "<short type: lathe|sander|cnc|press|mill|...>", ' +
-  '"region": {"x": <0..1>, "y": <0..1>, "w": <0..1>, "h": <0..1>}, "note": "<short visual descriptor you used>"}]\n' +
-  "region is a normalized bounding box of that machine within the frame; x,y is the top-left " +
-  "corner, w,h the size, all fractions of the image (0..1). Include only machines the operator " +
-  "describes. If a described machine is not visible, omit it.";
+  "You are setting up an autonomous shop-floor monitoring agent. You receive a still frame " +
+  "from a FIXED shop camera and, optionally, the operator's plain-English description of the " +
+  "machines. Identify EVERY distinct machine visible in the frame — one entry per machine; do " +
+  "not omit any, and do not invent machines that aren't there. Name and type each one: if the " +
+  "operator's description refers to it (by position, color, or type), use that name; otherwise " +
+  "INFER a plausible, specific name and type from its appearance (shape, color, position) — a " +
+  "long bed with a chuck is a lathe, an enclosed cabinet is a CNC, a tall frame with a ram is a " +
+  'press, etc. Prefer descriptive guesses ("Lathe 1", "CNC Mill", "Hydraulic Press") over ' +
+  "generic labels like 'Machine 4'. Ignore non-machine objects (scrap bins, people, walkways, " +
+  "walls). Return ONLY a JSON array, no prose:\n" +
+  '[{"name": "<name>", "kind": "<short type: lathe|mill|cnc|press|sander|drill|saw|...>", ' +
+  '"region": {"x": <0..1>, "y": <0..1>, "w": <0..1>, "h": <0..1>}, "note": "<short visual descriptor>"}]\n' +
+  "region is a normalized bounding box of the machine (x,y = top-left corner; w,h = size; all " +
+  "fractions of the image, 0..1).";
 
 export async function identifyMachines(
   imageBase64: string,
@@ -40,7 +44,12 @@ export async function identifyMachines(
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
-          { type: "text", text: `Operator description:\n${description}\n\nReturn the JSON array of machines.` },
+          {
+            type: "text",
+            text: description.trim()
+              ? `Operator description: ${description}\n\nUse it where it applies, but identify and name EVERY machine in the frame (infer names for any the operator didn't mention). Return the JSON array.`
+              : "No description provided — identify and name EVERY machine in the frame from its appearance. Return the JSON array.",
+          },
         ],
       },
     ],
