@@ -37,7 +37,7 @@ RawFrame ─▶ ingestFrame ─▶ ParsedRecord ─▶ classifyFrame ─▶ Obse
 | `lib/reason.ts` | Optional **Claude-authored** drafted action + briefing for a caught anomaly |
 | `lib/machineConfig.ts` | Floor config types + localStorage persistence + pure `clampRegion`/`normalizeMachines` |
 | `lib/setup.ts` | `identifyMachines(image, description)` — Claude Opus 4.8 grounds the description into regions |
-| `lib/demoFloor.ts` | Shared 3-machine demo floor (used by `/setup` + `/live` demo source) |
+| `lib/demoFloor.ts` | Shared 4-machine demo floor — distinct green lathe / steel mill / orange press / blue CNC (used by `/setup` + `/live` demo source) |
 | `lib/view.ts` | `renderAgentReport(report)` → dashboard HTML |
 | `app/page.tsx` | Static landing report (imports `data/report.json`) |
 | `app/live/page.tsx` | Live browser-capture page |
