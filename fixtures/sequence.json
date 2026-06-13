@@ -1,0 +1,28 @@
+[
+  { "machineId": "M-101", "machineName": "CNC Mill",    "step": 0, "ts": "2026-06-13T08:00:00Z", "frameRef": "fixtures/frames/M-101_00.png", "trueState": "running" },
+  { "machineId": "M-101", "machineName": "CNC Mill",    "step": 1, "ts": "2026-06-13T08:01:00Z", "frameRef": "fixtures/frames/M-101_01.png", "trueState": "running" },
+  { "machineId": "M-101", "machineName": "CNC Mill",    "step": 2, "ts": "2026-06-13T08:02:00Z", "frameRef": "fixtures/frames/M-101_02.png", "trueState": "running" },
+  { "machineId": "M-101", "machineName": "CNC Mill",    "step": 3, "ts": "2026-06-13T08:03:00Z", "frameRef": "fixtures/frames/M-101_03.png", "trueState": "running" },
+  { "machineId": "M-101", "machineName": "CNC Mill",    "step": 4, "ts": "2026-06-13T08:04:00Z", "frameRef": "fixtures/frames/M-101_04.png", "trueState": "running" },
+  { "machineId": "M-101", "machineName": "CNC Mill",    "step": 5, "ts": "2026-06-13T08:05:00Z", "frameRef": "fixtures/frames/M-101_05.png", "trueState": "running" },
+  { "machineId": "M-101", "machineName": "CNC Mill",    "step": 6, "ts": "2026-06-13T08:06:00Z", "frameRef": "fixtures/frames/M-101_06.png", "trueState": "running" },
+  { "machineId": "M-101", "machineName": "CNC Mill",    "step": 7, "ts": "2026-06-13T08:07:00Z", "frameRef": "fixtures/frames/M-101_07.png", "trueState": "running" },
+
+  { "machineId": "M-102", "machineName": "Lathe",       "step": 0, "ts": "2026-06-13T08:00:00Z", "frameRef": "fixtures/frames/M-102_00.png", "trueState": "running" },
+  { "machineId": "M-102", "machineName": "Lathe",       "step": 1, "ts": "2026-06-13T08:01:00Z", "frameRef": "fixtures/frames/M-102_01.png", "trueState": "running" },
+  { "machineId": "M-102", "machineName": "Lathe",       "step": 2, "ts": "2026-06-13T08:02:00Z", "frameRef": "fixtures/frames/M-102_02.png", "trueState": "running" },
+  { "machineId": "M-102", "machineName": "Lathe",       "step": 3, "ts": "2026-06-13T08:03:00Z", "frameRef": "fixtures/frames/M-102_03.png", "trueState": "stopped" },
+  { "machineId": "M-102", "machineName": "Lathe",       "step": 4, "ts": "2026-06-13T08:04:00Z", "frameRef": "fixtures/frames/M-102_04.png", "trueState": "stopped" },
+  { "machineId": "M-102", "machineName": "Lathe",       "step": 5, "ts": "2026-06-13T08:05:00Z", "frameRef": "fixtures/frames/M-102_05.png", "trueState": "stopped" },
+  { "machineId": "M-102", "machineName": "Lathe",       "step": 6, "ts": "2026-06-13T08:06:00Z", "frameRef": "fixtures/frames/M-102_06.png", "trueState": "running" },
+  { "machineId": "M-102", "machineName": "Lathe",       "step": 7, "ts": "2026-06-13T08:07:00Z", "frameRef": "fixtures/frames/M-102_07.png", "trueState": "running" },
+
+  { "machineId": "M-103", "machineName": "Press Brake", "step": 0, "ts": "2026-06-13T08:00:00Z", "frameRef": "fixtures/frames/M-103_00.png", "trueState": "idle" },
+  { "machineId": "M-103", "machineName": "Press Brake", "step": 1, "ts": "2026-06-13T08:01:00Z", "frameRef": "fixtures/frames/M-103_01.png", "trueState": "idle" },
+  { "machineId": "M-103", "machineName": "Press Brake", "step": 2, "ts": "2026-06-13T08:02:00Z", "frameRef": "fixtures/frames/M-103_02.png", "trueState": "running" },
+  { "machineId": "M-103", "machineName": "Press Brake", "step": 3, "ts": "2026-06-13T08:03:00Z", "frameRef": "fixtures/frames/M-103_03.png", "trueState": "running" },
+  { "machineId": "M-103", "machineName": "Press Brake", "step": 4, "ts": "2026-06-13T08:04:00Z", "frameRef": "fixtures/frames/M-103_04.png", "trueState": "running" },
+  { "machineId": "M-103", "machineName": "Press Brake", "step": 5, "ts": "2026-06-13T08:05:00Z", "frameRef": "fixtures/frames/M-103_05.png", "trueState": "running" },
+  { "machineId": "M-103", "machineName": "Press Brake", "step": 6, "ts": "2026-06-13T08:06:00Z", "frameRef": "fixtures/frames/M-103_06.png", "trueState": "running" },
+  { "machineId": "M-103", "machineName": "Press Brake", "step": 7, "ts": "2026-06-13T08:07:00Z", "frameRef": "fixtures/frames/M-103_07.png", "trueState": "idle" }
+]

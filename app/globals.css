@@ -1,0 +1,196 @@
+/* Industrial control-room theme — deliberately not Opus 4.8's cream/serif default.
+   Dark slate surfaces, monospace readouts, andon status colors. */
+:root {
+  --bg: #0e1116;
+  --panel: #161b22;
+  --panel-2: #1c232c;
+  --border: #2a323c;
+  --text: #e6edf3;
+  --muted: #8b97a3;
+  --run: #36d399; /* green  — running */
+  --idle: #f2c14e; /* amber  — idle */
+  --stop: #f2545b; /* red    — stopped */
+  --accent: #f2a53c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+}
+
+.wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+  margin-bottom: 22px;
+}
+
+.topbar h1 {
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.topbar .sub {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px 18px;
+}
+
+/* Anomaly briefing — the headline of the screen */
+.alert {
+  border-left: 4px solid var(--stop);
+  background: linear-gradient(90deg, rgba(242, 84, 91, 0.12), var(--panel));
+}
+
+.alert .when {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.alert .headline {
+  font-size: 16px;
+  margin: 6px 0 10px;
+}
+
+.alert .action {
+  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.machine {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+}
+
+.machine .name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot.running {
+  background: var(--run);
+  box-shadow: 0 0 8px var(--run);
+}
+.dot.idle {
+  background: var(--idle);
+  box-shadow: 0 0 8px var(--idle);
+}
+.dot.stopped {
+  background: var(--stop);
+  box-shadow: 0 0 8px var(--stop);
+}
+
+.state {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11px;
+}
+.state.running {
+  color: var(--run);
+}
+.state.idle {
+  color: var(--idle);
+}
+.state.stopped {
+  color: var(--stop);
+}
+
+.util {
+  margin-top: 12px;
+}
+
+.bar {
+  height: 6px;
+  background: #0a0d11;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  background: var(--run);
+}
+
+.briefing {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.briefing li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.briefing li:last-child {
+  border-bottom: none;
+}
+
+.section {
+  margin-top: 26px;
+}

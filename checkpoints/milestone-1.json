@@ -1,0 +1,8 @@
+{
+  "id": 1,
+  "milestone": "Data ingest",
+  "passedAt": "2026-06-13T19:32:53Z",
+  "verifier": "PASS",
+  "check": "npm test -- ingest",
+  "evidence": "node scripts/test.mjs ingest -> tests 5 / pass 5 / fail 0, exit 0"
+}

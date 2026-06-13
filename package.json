@@ -1,0 +1,29 @@
+{
+  "name": "shop-floor-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node scripts/test.mjs",
+    "test:smoke": "node scripts/test.mjs smoke",
+    "eval": "node --disable-warning=ExperimentalWarning eval/run.ts",
+    "fixtures": "node --disable-warning=ExperimentalWarning fixtures/generate.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "next": "^15.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/pngjs": "^6.0.5",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.8.0"
+  }
+}
