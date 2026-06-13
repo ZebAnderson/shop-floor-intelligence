@@ -94,9 +94,52 @@ function detectStoppages(timeline: Observation[]): Anomaly[] {
   return anomalies;
 }
 
+// A sustained obstruction (lens blocked/covered/dark) — reported as a CAMERA problem,
+// never as a machine stoppage. The "investigated" frames bracket the last clear view.
+function detectObstructions(timeline: Observation[]): Anomaly[] {
+  const anomalies: Anomaly[] = [];
+  const interval = cadenceMin(timeline);
+  let i = 0;
+  while (i < timeline.length) {
+    if (timeline[i].state !== "obstructed") {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j + 1 < timeline.length && timeline[j + 1].state === "obstructed") j++;
+
+    const runLength = j - i + 1;
+    if (runLength >= STOPPAGE_MIN_FRAMES) {
+      const first = timeline[i];
+      const ongoing = j === timeline.length - 1;
+      const durationMin = runLength * interval;
+      const when = hhmm(first.timestamp);
+      let clearIdx = i - 1;
+      while (clearIdx >= 0 && timeline[clearIdx].state === "obstructed") clearIdx--;
+      const investigated = (clearIdx >= 0 ? [timeline[clearIdx].frameRef] : [])
+        .concat(timeline.slice(i, j + 1).map((o) => o.frameRef))
+        .filter((f) => f.length > 0);
+
+      anomalies.push({
+        machineId: first.machineId,
+        machineName: first.machineName,
+        event: "feed_obstructed",
+        detectedAt: first.timestamp,
+        durationMin,
+        frames: investigated,
+        draftedAction: `Check the camera on ${first.machineName} (${first.machineId}); its view has been obstructed ~${durationMin} min${ongoing ? " and is still blocked" : ""} since ${when} (lens blocked or covered, knocked out of position, or too dark to read). Clear the obstruction or reposition the camera — machine state is unknown while the feed is blocked.`,
+        briefing: `${first.machineName} (${first.machineId}) CAMERA BLOCKED ~${durationMin} min from ${when}${ongoing ? " (ongoing)" : ""} — feed obstructed, check the camera.`,
+      });
+    }
+    i = j + 1;
+  }
+  return anomalies;
+}
+
 function summarize(timeline: Observation[]): MachineSummary {
   const totalFrames = timeline.length;
   const runningFrames = timeline.filter((o) => o.state === "running").length;
+  const obstructedFrames = timeline.filter((o) => o.state === "obstructed").length;
   const latest = timeline[timeline.length - 1];
   return {
     machineId: latest.machineId,
@@ -105,6 +148,8 @@ function summarize(timeline: Observation[]): MachineSummary {
     utilization: totalFrames > 0 ? runningFrames / totalFrames : 0,
     runningFrames,
     totalFrames,
+    obstructedFrames,
+    timeline: timeline.map((o) => o.state),
   };
 }
 
@@ -116,7 +161,7 @@ export function buildReport(observations: Observation[]): AgentReport {
   const summaries: MachineSummary[] = [];
   for (const machineId of [...machines.keys()].sort()) {
     const timeline = machines.get(machineId)!;
-    anomalies.push(...detectStoppages(timeline));
+    anomalies.push(...detectStoppages(timeline), ...detectObstructions(timeline));
     summaries.push(summarize(timeline));
   }
 

@@ -13,7 +13,7 @@
 import { readFileSync } from "node:fs";
 import { join, dirname, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { MachineState } from "./types.ts";
+import type { FrameState } from "./types.ts";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -36,11 +36,11 @@ export function currentBackend(): VisionBackend {
     : "local";
 }
 
-// Fail closed: only the model's exact contract (one of the three words) is accepted.
+// Fail closed: only the model's exact contract (one of the four words) is accepted.
 // An empty/refusal/unexpected response throws rather than silently becoming "running".
-export function parseState(text: string): MachineState {
+export function parseState(text: string): FrameState {
   const word = text.trim().toLowerCase().split(/[^a-z]+/).filter(Boolean)[0] ?? "";
-  if (word === "running" || word === "idle" || word === "stopped") {
+  if (word === "running" || word === "idle" || word === "stopped" || word === "obstructed") {
     return word;
   }
   throw new Error(
@@ -50,19 +50,20 @@ export function parseState(text: string): MachineState {
 
 const SYSTEM_PROMPT =
   "You monitor a live machine-shop camera for an autonomous floor-monitoring agent. " +
-  "Decide the machine's current state from this single frame:\n" +
+  "Decide the state from this single frame:\n" +
   "- running: actively cycling or cutting — moving spindle/tool, chips/sparks, visible motion, or a GREEN andon stack light lit.\n" +
   "- idle: powered but not working — no motion, no operator, or an AMBER andon light lit.\n" +
   "- stopped: halted or faulted — machine off, a fault condition, or a RED andon light lit.\n" +
-  "If a colored andon stack light is visible it is the most reliable signal (red->stopped, amber->idle, green->running). " +
-  "Reply with EXACTLY one lowercase word: running, idle, or stopped.";
+  "- obstructed: you CANNOT tell what the camera is looking at — the lens is blocked or covered, the frame is too dark, blurred, or shows a hand/object right against the lens, or there is no machine in view. When in doubt because the view is unusable, choose obstructed; do NOT guess a machine state from an unusable frame.\n" +
+  "If a colored andon stack light is clearly visible it is the most reliable signal (red->stopped, amber->idle, green->running). " +
+  "Reply with EXACTLY one lowercase word: running, idle, stopped, or obstructed.";
 
 // Core Claude path: classify a base64 PNG. No fs, so it is safe in a serverless
 // route. No sampling params (Opus 4.8 rejects temperature/top_p/top_k).
 export async function classifyImageClaude(
   base64Image: string,
   mediaType: "image/png" | "image/jpeg" = "image/png",
-): Promise<MachineState> {
+): Promise<FrameState> {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic(); // reads ANTHROPIC_API_KEY from env
   const msg = await client.messages.create({
@@ -83,14 +84,14 @@ export async function classifyImageClaude(
   return parseState(text);
 }
 
-export async function classifyFrameClaude(frameRef: string): Promise<MachineState> {
+export async function classifyFrameClaude(frameRef: string): Promise<FrameState> {
   return classifyImageClaude(readFileSync(resolveFrame(frameRef)).toString("base64"));
 }
 
 export async function classifyFrame(
   frameRef: string,
   opts?: { backend?: VisionBackend },
-): Promise<MachineState> {
+): Promise<FrameState> {
   const backend = opts?.backend ?? currentBackend();
   if (backend === "claude") return classifyFrameClaude(frameRef);
   const { classifyFrameLocal } = await import("./visionLocal.ts");

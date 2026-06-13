@@ -11,13 +11,13 @@ import { buildReport } from "./reportCore.ts";
 import type {
   ParsedRecord,
   Observation,
-  MachineState,
+  FrameState,
   AgentReport,
 } from "./types.ts";
 
 export { buildReport };
 
-export type Classifier = (frameRef: string) => Promise<MachineState>;
+export type Classifier = (frameRef: string) => Promise<FrameState>;
 
 const defaultClassifier: Classifier = (frameRef) => classifyFrame(frameRef);
 

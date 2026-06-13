@@ -12,6 +12,16 @@ export const MACHINE_STATES: readonly MachineState[] = [
   "stopped",
 ];
 
+// What a single frame can resolve to. "obstructed" means the vision layer cannot
+// tell what it is looking at — the lens is blocked/covered/too dark — which must be
+// reported as a camera problem, NEVER misread as a machine stoppage.
+export type FrameState = MachineState | "obstructed";
+
+export const FRAME_STATES: readonly FrameState[] = [
+  ...MACHINE_STATES,
+  "obstructed",
+];
+
 // A raw frame as it arrives off a camera feed (the ingest input).
 export interface RawFrame {
   machineId: string;
@@ -36,16 +46,18 @@ export interface ParsedRecord {
 
 // One classified observation in a machine's timeline.
 export interface Observation extends ParsedRecord {
-  state: MachineState;
+  state: FrameState;
 }
+
+export type AnomalyKind = "stoppage" | "feed_obstructed";
 
 // An anomaly the agent caught, with the action + briefing it drafted.
 export interface Anomaly {
   machineId: string;
   machineName: string;
-  event: "stoppage";
-  detectedAt: string; // ISO timestamp of first stopped frame
-  durationMin: number; // sustained stopped duration in minutes
+  event: AnomalyKind;
+  detectedAt: string; // ISO timestamp of the first frame in the run
+  durationMin: number; // sustained duration in minutes
   frames: string[]; // frameRefs the agent inspected
   draftedAction: string; // the next step the agent proposes
   briefing: string; // one-line shift-briefing entry
@@ -55,10 +67,12 @@ export interface Anomaly {
 export interface MachineSummary {
   machineId: string;
   machineName: string;
-  latestState: MachineState;
+  latestState: FrameState;
   utilization: number; // fraction of observed window spent running (0..1)
   runningFrames: number;
   totalFrames: number;
+  obstructedFrames: number;
+  timeline: FrameState[]; // ordered per-frame states, for the sparkline strip
 }
 
 // The full agent output the UI renders.

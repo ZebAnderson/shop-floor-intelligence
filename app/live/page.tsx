@@ -9,11 +9,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildReport } from "@/lib/reportCore.ts";
 import { renderAgentReport } from "@/lib/view.ts";
-import type { MachineState, Observation } from "@/lib/types.ts";
+import type { MachineState, FrameState, Observation } from "@/lib/types.ts";
 
 const SAMPLE_MS = 2000;
 const CAP_W = 480;
 const CAP_H = 360;
+// Below this luminance variance the frame is near-uniform — lens blocked/covered/dark.
+const OBSTRUCT_VAR = 150;
 
 interface Source {
   id: string;
@@ -31,13 +33,30 @@ const LAMP_OFF: Record<MachineState, string> = {
   running: "#144120",
 };
 
+// In-browser obstruction check: sample the captured frame's luminance variance.
+function isObstructed(ctx: CanvasRenderingContext2D): boolean {
+  const { data } = ctx.getImageData(0, 0, CAP_W, CAP_H);
+  let sum = 0;
+  let sumSq = 0;
+  let n = 0;
+  for (let i = 0; i < data.length; i += 16) {
+    const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
+    sum += lum;
+    sumSq += lum * lum;
+    n++;
+  }
+  if (n === 0) return true;
+  const mean = sum / n;
+  return sumSq / n - mean * mean < OBSTRUCT_VAR;
+}
+
 export default function LivePage() {
   const [cameras, setCameras] = useState<Source[]>([]);
   const [sourceId, setSourceId] = useState<string>("demo");
   const [running, setRunning] = useState(false);
-  const [current, setCurrent] = useState<MachineState | null>(null);
+  const [current, setCurrent] = useState<FrameState | null>(null);
   const [reportHtml, setReportHtml] = useState<string>("");
-  const [logs, setLogs] = useState<{ t: string; state: MachineState }[]>([]);
+  const [logs, setLogs] = useState<{ t: string; state: FrameState; viaClaude: boolean }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -110,6 +129,31 @@ export default function LivePage() {
     rafRef.current = requestAnimationFrame(drawDemo);
   }, []);
 
+  const record = useCallback(
+    (state: FrameState, viaClaude: boolean) => {
+      const now = new Date();
+      const label = labelFor(sourceRef.current);
+      const obs: Observation = {
+        machineId: label,
+        machineName: label,
+        timestamp: now.toISOString(),
+        epochMs: now.getTime(),
+        frameRef: "",
+        step: countRef.current++,
+        state,
+      };
+      obsRef.current = [...obsRef.current, obs];
+      setCurrent(state);
+      setLogs((l) =>
+        [{ t: now.toLocaleTimeString(), state, viaClaude }, ...l].slice(0, 40),
+      );
+      const rep = buildReport(obsRef.current);
+      rep.vision = "Claude Opus 4.8";
+      setReportHtml(renderAgentReport(rep));
+    },
+    [labelFor],
+  );
+
   const sample = useCallback(async () => {
     const cap = capRef.current;
     const ctx = cap?.getContext("2d");
@@ -126,6 +170,14 @@ export default function LivePage() {
       ctx.drawImage(d, 0, 0, CAP_W, CAP_H);
     }
 
+    // Instant in-browser obstruction check: a near-uniform frame means the lens is
+    // blocked, covered, or too dark. Flag it immediately and skip the paid call.
+    if (isObstructed(ctx)) {
+      setError(null);
+      record("obstructed", false);
+      return;
+    }
+
     const imageBase64 = cap.toDataURL("image/jpeg", 0.6).split(",")[1];
     try {
       const res = await fetch("/api/vision", {
@@ -138,29 +190,13 @@ export default function LivePage() {
         setError(`Vision error: ${j.error ?? res.status}`);
         return;
       }
-      const { state } = (await res.json()) as { state: MachineState };
+      const { state } = (await res.json()) as { state: FrameState };
       setError(null);
-      const now = new Date();
-      const label = labelFor(sourceRef.current);
-      const obs: Observation = {
-        machineId: label,
-        machineName: label,
-        timestamp: now.toISOString(),
-        epochMs: now.getTime(),
-        frameRef: "",
-        step: countRef.current++,
-        state,
-      };
-      obsRef.current = [...obsRef.current, obs];
-      setCurrent(state);
-      setLogs((l) => [{ t: now.toLocaleTimeString(), state }, ...l].slice(0, 40));
-      const rep = buildReport(obsRef.current);
-      rep.vision = "Claude Opus 4.8";
-      setReportHtml(renderAgentReport(rep));
+      record(state, true);
     } catch {
       setError("Network error contacting /api/vision.");
     }
-  }, [labelFor]);
+  }, [record]);
 
   async function enableCameras() {
     setError(null);
@@ -240,7 +276,12 @@ export default function LivePage() {
       </div>
 
       <div className="controls">
-        <select value={sourceId} onChange={(e) => setSourceId(e.target.value)} disabled={running}>
+        <select
+          aria-label="Camera source"
+          value={sourceId}
+          onChange={(e) => setSourceId(e.target.value)}
+          disabled={running}
+        >
           <option value="demo">Demo machine loop (simulated)</option>
           {cameras.map((c) => (
             <option key={c.id} value={c.id}>
@@ -283,14 +324,19 @@ export default function LivePage() {
           <p className="note">
             Capture is in your browser; only the sampled frame is sent to{" "}
             <code>/api/vision</code> (Claude Opus 4.8). Point a Logitech Brio at a real
-            machine — or at <a href="/loop.html" target="_blank">/loop.html</a> on a second
-            screen — or just use the built-in demo loop. A sustained <b>stopped</b> read
-            (≥2 samples) is caught as a stoppage and an action is drafted.
+            machine — or at <a href="/loop.html" target="_blank" rel="noreferrer">/loop.html</a>{" "}
+            on a second screen — or just use the built-in demo loop. A sustained{" "}
+            <b>stopped</b> read (≥2 samples) is caught as a stoppage and an action is
+            drafted. <b>Cover the lens</b> and the agent flags the feed as{" "}
+            <b>obstructed</b> — skipping the paid call when the view is unusable.
           </p>
-          <ul className="classlog">
+          <ul className="classlog" aria-label="Classification log">
             {logs.map((l, i) => (
               <li key={i}>
-                {l.t} — <span className={`s state ${l.state}`}>{l.state}</span>
+                {l.t} — <span className={`s state ${l.state}`}>{l.state}</span>{" "}
+                <span className="sub">
+                  {l.viaClaude ? "· Claude Opus 4.8" : "· obstruction check"}
+                </span>
               </li>
             ))}
           </ul>
