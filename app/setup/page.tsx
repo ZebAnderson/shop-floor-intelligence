@@ -25,11 +25,19 @@ interface Source {
 }
 
 // Minimal Web Speech API typing (optional progressive enhancement).
+interface SRResult {
+  isFinal: boolean;
+  [k: number]: { transcript: string };
+}
+interface SREvent {
+  resultIndex: number;
+  results: { length: number; [k: number]: SRResult };
+}
 interface SRLike {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
-  onresult: ((e: { results: { length: number; [k: number]: { [k: number]: { transcript: string } } } }) => void) | null;
+  onresult: ((e: SREvent) => void) | null;
   onend: (() => void) | null;
   onerror: (() => void) | null;
   start(): void;
@@ -55,6 +63,9 @@ export default function SetupPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
   const srRef = useRef<SRLike | null>(null);
+  const wantListenRef = useRef(false); // keep restarting until the user taps stop
+  const finalRef = useRef(""); // accumulated finalized transcript
+  const baseRef = useRef(""); // description text present before dictation started
 
   const usingVideo = sourceId !== "demo";
 
@@ -185,31 +196,65 @@ export default function SetupPage() {
     ]);
   }
 
-  function toggleVoice() {
-    if (listening) {
-      srRef.current?.stop();
-      return;
-    }
+  function buildRecognizer(): SRLike | null {
     const w = window as unknown as { SpeechRecognition?: new () => SRLike; webkitSpeechRecognition?: new () => SRLike };
     const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!Ctor) {
+    if (!Ctor) return null;
+    const sr = new Ctor();
+    sr.lang = "en-US";
+    sr.continuous = true; // keep listening across sentences/pauses
+    sr.interimResults = true; // show words as they're spoken
+    sr.onresult = (e) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i];
+        const txt = res[0].transcript;
+        if (res.isFinal) finalRef.current = `${finalRef.current} ${txt}`.trim();
+        else interim += txt;
+      }
+      setDescription(`${baseRef.current} ${finalRef.current} ${interim}`.replace(/\s+/g, " ").trim());
+    };
+    // Browsers stop the recognizer after a silence window; restart it until the
+    // user taps stop, so dictation spans as many sentences as they like.
+    sr.onend = () => {
+      if (wantListenRef.current) {
+        try {
+          sr.start();
+        } catch {
+          /* already starting */
+        }
+      } else {
+        setListening(false);
+      }
+    };
+    sr.onerror = () => {
+      /* keep wantListen; onend fires next and decides whether to restart */
+    };
+    return sr;
+  }
+
+  function toggleVoice() {
+    if (listening) {
+      wantListenRef.current = false;
+      srRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const sr = buildRecognizer();
+    if (!sr) {
       setError("Voice input isn't supported in this browser — type the description instead.");
       return;
     }
-    const sr = new Ctor();
-    sr.lang = "en-US";
-    sr.interimResults = false;
-    sr.continuous = false;
-    sr.onresult = (e) => {
-      let text = "";
-      for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
-      setDescription((d) => (d === EXAMPLE ? text : `${d} ${text}`).trim());
-    };
-    sr.onend = () => setListening(false);
-    sr.onerror = () => setListening(false);
+    baseRef.current = description.trim() === EXAMPLE ? "" : description.trim();
+    finalRef.current = "";
     srRef.current = sr;
+    wantListenRef.current = true;
     setListening(true);
-    sr.start();
+    try {
+      sr.start();
+    } catch {
+      /* already started */
+    }
   }
 
   function save() {
@@ -222,6 +267,13 @@ export default function SetupPage() {
   }
 
   useEffect(() => stopPreview, [stopPreview]);
+  useEffect(
+    () => () => {
+      wantListenRef.current = false;
+      srRef.current?.stop();
+    },
+    [],
+  );
 
   return (
     <main className="wrap">
@@ -287,7 +339,7 @@ export default function SetupPage() {
           placeholder={EXAMPLE}
         />
         <div className="controls">
-          <button onClick={toggleVoice} aria-pressed={listening}>{listening ? "● Listening… (stop)" : "🎤 Speak"}</button>
+          <button onClick={toggleVoice} aria-pressed={listening}>{listening ? "● Listening… (tap to stop)" : "🎤 Speak"}</button>
           <button className="primary" onClick={identify} disabled={!frame || identifying}>
             {identifying ? "Identifying…" : "Identify machines"}
           </button>
