@@ -324,7 +324,7 @@ export default function LivePage() {
 
       <div className="controls">
         <select aria-label={running ? "Source (locked while monitoring)" : "Camera source"} value={sourceId} onChange={(e) => setSourceId(e.target.value)} disabled={running}>
-          <option value="demo">Demo floor (3 machines)</option>
+          <option value="demo">Demo floor (4 machines)</option>
           <option value="screen">Screen / window share</option>
           {cameras.map((c) => (
             <option key={c.id} value={c.id}>{c.label}</option>

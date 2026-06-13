@@ -343,7 +343,7 @@ export default function SetupPage() {
         <p className="eyebrow">1 · Capture a frame</p>
         <div className="controls">
           <select aria-label="Camera source" value={sourceId} onChange={(e) => setSourceId(e.target.value)} disabled={previewing}>
-            <option value="demo">Demo floor (3 machines)</option>
+            <option value="demo">Demo floor (4 machines)</option>
             <option value="screen">Screen / window share</option>
             {cameras.map((c) => (
               <option key={c.id} value={c.id}>{c.label}</option>
