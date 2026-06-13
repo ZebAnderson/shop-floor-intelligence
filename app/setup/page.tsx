@@ -48,6 +48,30 @@ interface SRLike {
   stop(): void;
 }
 
+// Append newly-identified machines to the existing list (so describing more machines
+// adds to it rather than replacing). Re-describing a machine by the same name updates
+// it in place; genuinely new names are appended with a guaranteed-unique id.
+function mergeMachines(existing: MachineRegion[], incoming: MachineRegion[]): MachineRegion[] {
+  const result = [...existing];
+  const ids = new Set(result.map((m) => m.id));
+  for (const inc of incoming) {
+    const idx = result.findIndex(
+      (m) => m.name.trim().toLowerCase() === inc.name.trim().toLowerCase(),
+    );
+    if (idx >= 0) {
+      result[idx] = { ...result[idx], kind: inc.kind, region: inc.region, note: inc.note };
+      continue;
+    }
+    let id = inc.id;
+    while (ids.has(id)) {
+      id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${id}-${ids.size}`;
+    }
+    ids.add(id);
+    result.push({ ...inc, id });
+  }
+  return result;
+}
+
 export default function SetupPage() {
   const router = useRouter();
   const [cameras, setCameras] = useState<Source[]>([]);
@@ -178,10 +202,14 @@ export default function SetupPage() {
         setError(data.error ?? `Setup error ${res.status}`);
         return;
       }
-      setMachines(data.machines ?? []);
-      if (!data.machines || data.machines.length === 0) {
+      const incoming = data.machines ?? [];
+      if (incoming.length === 0) {
         setError("No machines identified — try a clearer frame or a more specific description.");
+        return; // keep the description so it can be edited
       }
+      // Append to the list (don't replace) and clear the prompt for the next machine.
+      setMachines((prev) => mergeMachines(prev, incoming));
+      setDescription("");
     } catch {
       setError("Network error contacting /api/setup.");
     } finally {
@@ -391,9 +419,14 @@ export default function SetupPage() {
         <div className="controls">
           <button onClick={toggleVoice} aria-pressed={listening}>{listening ? "● Listening… (tap to stop)" : "🎤 Speak"}</button>
           <button className="primary" onClick={identify} disabled={!frame || identifying}>
-            {identifying ? "Identifying…" : "Identify machines"}
+            {identifying ? "Identifying…" : machines.length > 0 ? "Identify & add" : "Identify machines"}
           </button>
         </div>
+        <p className="note">
+          Describe a few machines at a time and click Identify — they're <b>added</b> to the
+          list below (your existing machines stay), and the field clears for the next batch.
+          Re-describing a machine by the same name updates it.
+        </p>
       </section>
 
       {machines.length > 0 && (
