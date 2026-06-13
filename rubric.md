@@ -1,5 +1,9 @@
 # Rubric — "done" the verifier can grade without a human
 
+> **Status:** all 5 milestones PASS via the verifier subagent; deployed live at
+> https://shop-floor-intelligence.vercel.app. This file remains the machine-gradable spec;
+> see `README.md` / `docs/ARCHITECTURE.md` for the system as built and its extensions.
+
 Each milestone is independently verifiable. The verifier sub-agent reads this file,
 checks the named evidence, and returns PASS/FAIL per item with reasons. The builder
 may only stop when every item is PASS and the live URL responds.

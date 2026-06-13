@@ -11,9 +11,25 @@ briefing — so the manager learns about an idle machine in minutes, not at end 
 
 ## The product is the agent, not the classifier
 The headline is the **autonomous watch → notice → investigate → draft-action loop**.
-Frame classification (running/idle/other) is plumbing the agent uses; never frame the
-demo, UI, or README as an "image analyzer" or a dashboard — those categories are banned.
-The demo leads on the live anomaly catch and the drafted briefing.
+Frame classification (running / idle / stopped / obstructed) is plumbing the agent uses;
+never frame the demo, UI, or README as an "image analyzer" or a dashboard — those
+categories are banned. The demo leads on the live anomaly catch and the drafted briefing.
+
+## Current state — build shipped
+The 5 rubric milestones all passed verification and the app is **deployed and live** at
+https://shop-floor-intelligence.vercel.app. The sections below ("What done looks like",
+"How to work") describe how the build was driven; for the system as it stands, read
+**`README.md`** (run/test/deploy + scripts) and **`docs/ARCHITECTURE.md`** (data flow,
+modules, vision backends, KPIs, routes, conventions). Quick reference:
+
+- **Run:** `npm install` → `npm run dev` (`/`, `/live`, `/loop.html`, `/loop3d.html`).
+- **Test:** `npm test` (Node-native runner). **Eval:** `npm run eval` (local) / `npm run eval:claude` (real Opus 4.8). **Bake report:** `npm run report:claude`.
+- **Deploy:** `npm run build` (== what Vercel runs) → `vercel --prod --yes`.
+
+### Conventions (keep these)
+- **Toolchain:** this machine SIGKILLs prebuilt adhoc-signed binaries (esbuild), so tests/scripts use Node's native test runner + native TS type-stripping (no vitest/tsx). Relative imports use explicit `.ts` extensions (`allowImportingTsExtensions`). Next builds with SWC, unaffected.
+- **Opus 4.8 API:** model `claude-opus-4-8`; never set `temperature`/`top_p`/`top_k` (400) — steer with the prompt; use adaptive thinking + effort. `parseState` fails closed.
+- **Vision:** local pixel backend (offline, deterministic — eval + committed report) + Claude backend (production/live). Capture in the browser, classify on the server (the only portable design). `obstructed` is a first-class state → a `feed_obstructed` alert, never a phantom stoppage.
 
 ## What "done" looks like
 The build is done when **every milestone in `rubric.md` passes verification by the
@@ -55,10 +71,12 @@ not stop on your own judgment that it "looks good" — stop only when the rubric
 ## UI design direction (do not use the default house style)
 Opus 4.8's default frontend look is warm cream / serif / terracotta — good for editorial,
 **wrong for an industrial monitoring UI.** Build the UI as a dark control-room surface:
-near-black background (~`#0E1116`), slate panels, and a single high-visibility status
-accent that maps to machine state (green = running, amber = idle/anomaly, red = stopped).
-Use a monospace or condensed sans for readouts and timestamps. Specify this concretely in
-code; generic "make it clean/minimal" will not override the default — a concrete palette will.
+near-black background (~`#0E1116`), slate panels, and status accents that map to machine
+state (green = running, amber = idle, red = stopped, violet = camera blocked/obstructed).
+Use monospace for chrome/readouts/data and a readable sans only for long prose; never
+convey state by color alone (pair it with a label). Specify this concretely in code;
+generic "make it clean/minimal" will not override the default — a concrete palette will.
+See `docs/UX-GUIDELINES.md` for the full rubric.
 
 ## Image analysis
 This project uses vision/image analysis on shop-floor imagery. Permission to use it was

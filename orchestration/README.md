@@ -22,3 +22,11 @@ only when every milestone is green and the live URL responds.
   so completion is proven, not asserted.
 - **Autonomy is visible:** `checkpoints/` + `memory/LESSONS.md` are the session-log
   trail showing the model caught and fixed its own failures between checkpoints.
+
+## Beyond the build loop
+After the 5 milestones passed, later passes used **multi-agent workflows** for breadth:
+an adversarial **pre-deploy review** (parallel reviewers across correctness / Vercel /
+security / demo-positioning, double-verified) and an **enhancement research** workflow
+(UX vs `docs/UX-GUIDELINES.md`, KPI/feature gaps via web search, the 3D-demo approach) that
+produced the prioritized no-bloat roadmap. Same principle as the verifier: independent
+agents grade and extend the work rather than the builder self-asserting.

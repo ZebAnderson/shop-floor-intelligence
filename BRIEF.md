@@ -22,10 +22,16 @@ or stopped machine in minutes, with a proposed next step already drafted.
    action** ("Line 2 idle ~6 min — likely tool change; notify cell lead") plus a briefing
    entry. Utilization/cycle stats are shown as supporting context.
 
-**Live + resilient.** `/live` runs the same loop on a real **Logitech Brio** (or a
-built-in demo loop): browser capture → Claude Opus 4.8 vision → live watch-catch-draft.
-If the camera is blocked or covered, the agent raises a distinct **camera-obstructed**
-alert and checks the camera — it never misreports a blocked lens as a machine stoppage.
+**Live + resilient.** `/live` runs the same loop on a real **Logitech Brio**, a screen
+share, or a built-in demo loop: browser capture → Claude Opus 4.8 vision → live
+watch-catch-draft. If the camera is blocked or covered, the agent raises a distinct
+**camera-obstructed** alert and checks the camera — it never misreports a blocked lens as a
+machine stoppage. Two reproducible demo feeds ship in the app: a 3D corner-mounted shop
+view (`/loop3d.html`) and a 2D loop (`/loop.html`).
+
+**Supporting context (not the headline).** Per machine: utilization, time-in-state, a
+per-frame timeline, and observed-window availability (an honest proxy, not OEE-grade). The
+caught event + the drafted action stay the hero.
 
 ## What this is *not*
 Not an image analyzer, not a dashboard — both are banned categories. Frame classification

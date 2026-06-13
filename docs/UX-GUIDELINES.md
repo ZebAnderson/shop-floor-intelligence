@@ -39,6 +39,21 @@ practice. Ethos: **no bloat** — every element earns its place or it is cut.
   purple-gradient-on-dark clichés).
 - Radius 4px; generous breathing room; sections separated by hairline borders.
 
+## Implemented components (the system in use)
+- **Topbar** with a pulsing `monitoring` status + the vision model + observed window.
+- **KPI strip** (machines watched · active alerts · avg utilization · observed availability) — at-a-glance, F-pattern, alarm-tinted when alerts > 0.
+- **Status legend** above the KPIs (running/idle/stopped/camera-blocked) — recognition over recall.
+- **Anomaly hero card** with an event chip (`Stoppage` / `Camera blocked`), an `Ongoing` chip, a one-line briefing, the **investigated-frames filmstrip** ("last clear view → caught"), and the Claude-authored drafted action.
+- **Machine card**: status dot + state label, a **time-in-state stacked bar** (running/idle/stopped/blocked) and a **per-frame timeline sparkline**, with utilization + observed availability.
+- **`/live`**: source picker (Brio / screen share / demo loop), `classifying…` badge, a **last-sweep/next-sweep heartbeat**, a **moment-of-catch banner** (`aria-live`), and a classification log tagged by classifier (Claude vs obstruction check).
+- **Footer** one-liner explaining what the screen is.
+
+## Heuristic wins already shipped
+Status visibility (heartbeat, KPI strip, sparkline, catch banner); recognition-not-recall
+(legend); consequence-ordered alerts (ISA-18.2); error prevention (obstruction detection,
+`/api/vision` input caps); accessibility (semantic landmarks, ARIA, focus-visible, AA
+muted contrast). Remaining ideas live in the enhancement roadmap, not here.
+
 ## Accessibility checklist (WCAG-minded)
 - Semantic landmarks (`header/section/article/footer`); `aria-live="polite"` on status.
 - `aria-label`s on controls; visible `:focus-visible`; full keyboard operability.
