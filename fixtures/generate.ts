@@ -5,7 +5,7 @@
 // the frame's true state) plus a spindle that advances while running, so a
 // running machine's consecutive frames genuinely differ.
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { loadRawSequence } from "../lib/ingest.ts";
@@ -67,10 +67,15 @@ const frames = loadRawSequence();
 mkdirSync(join(repoRoot, "fixtures", "frames"), { recursive: true });
 mkdirSync(join(repoRoot, "eval"), { recursive: true });
 
+const framesRoot = join(repoRoot, "fixtures", "frames");
 const groundTruth: string[] = ["frameRef,label"];
 for (const f of frames) {
   const state = (f.trueState ?? "running") as MachineState;
-  writeFileSync(join(repoRoot, f.frameRef), renderFrame(state, f.step ?? 0));
+  const out = normalize(join(repoRoot, f.frameRef));
+  if (!out.startsWith(framesRoot + sep)) {
+    throw new Error(`generate: frameRef escapes fixtures/frames: ${f.frameRef}`);
+  }
+  writeFileSync(out, renderFrame(state, f.step ?? 0));
   groundTruth.push(`${f.frameRef},${state}`);
 }
 writeFileSync(

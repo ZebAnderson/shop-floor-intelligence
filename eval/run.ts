@@ -17,13 +17,22 @@ interface Row {
 
 function readGroundTruth(): Row[] {
   const text = readFileSync(join(repoRoot, "eval", "ground_truth.csv"), "utf8").trim();
+  const valid: MachineState[] = ["running", "idle", "stopped"];
   return text
     .split(/\r?\n/)
     .slice(1) // drop header
     .filter((line) => line.trim().length > 0)
-    .map((line) => {
-      const [frameRef, label] = line.split(",");
-      return { frameRef: frameRef.trim(), label: label.trim() as MachineState };
+    .map((line, i) => {
+      const cells = line.split(",");
+      if (cells.length !== 2) {
+        throw new Error(`ground_truth.csv row ${i + 2}: expected 2 columns, got ${cells.length}`);
+      }
+      const frameRef = cells[0].trim();
+      const label = cells[1].trim();
+      if (!valid.includes(label as MachineState)) {
+        throw new Error(`ground_truth.csv row ${i + 2}: invalid label "${label}"`);
+      }
+      return { frameRef, label: label as MachineState };
     });
 }
 

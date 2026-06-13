@@ -1,16 +1,12 @@
-// Placeholder during M2's Vercel build check. The full industrial dashboard
-// (agent report: anomaly-first briefing + per-machine state) lands in M4.
-import { MACHINE_STATES } from "@/lib/types.ts";
+// The agent report. Server component, statically prerendered at build time from the
+// precomputed report (data/report.json) — so the deployed URL responds with the
+// watch -> catch -> draft result with no runtime fs and no API key. The live camera
+// feed (real Claude Opus 4.8 vision) lives at /live.
+import report from "@/data/report.json";
+import { renderAgentReport } from "@/lib/view.ts";
+import type { AgentReport } from "@/lib/types.ts";
 
 export default function Page() {
-  return (
-    <main className="wrap">
-      <div className="topbar">
-        <h1>Shop Floor Intelligence</h1>
-        <span className="sub">scaffold — dashboard arrives in M4</span>
-      </div>
-      <p className="eyebrow">monitored states</p>
-      <p>{MACHINE_STATES.join(" · ")}</p>
-    </main>
-  );
+  const html = renderAgentReport(report as unknown as AgentReport);
+  return <main className="wrap" dangerouslySetInnerHTML={{ __html: html }} />;
 }

@@ -29,7 +29,7 @@ export function ingestFrame(raw: RawFrame, index = 0): ParsedRecord {
     timestamp: date.toISOString(),
     epochMs: date.getTime(),
     frameRef,
-    step: typeof raw.step === "number" ? raw.step : index,
+    step: Number.isInteger(raw.step) && (raw.step as number) >= 0 ? (raw.step as number) : index,
   };
 }
 

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shop Floor Intelligence — Demo Feed</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0e12; overflow: hidden; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script>
+    // Self-contained simulated machine feed. A machine with an andon stack light
+    // cycles running -> idle -> stopped -> running, looping forever. Film this
+    // full-screen with a webcam, or sample it in-app (/live). Claude reads the
+    // lit lamp; the small caption is just for the presenter.
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    let W = 0, H = 0, DPR = 1;
+    function resize() {
+      DPR = window.devicePixelRatio || 1;
+      W = canvas.clientWidth; H = canvas.clientHeight;
+      canvas.width = Math.round(W * DPR);
+      canvas.height = Math.round(H * DPR);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Cycle schedule (seconds). Loops at CYCLE.
+    const CYCLE = 24;
+    function stateAt(t) {
+      const s = t % CYCLE;
+      if (s < 9) return 'running';
+      if (s < 13) return 'idle';
+      if (s < 19) return 'stopped';
+      return 'running';
+    }
+    const LAMP = {
+      stopped: { on: '#e62d28', off: '#461614' },
+      idle:    { on: '#f0b91e', off: '#463c12' },
+      running: { on: '#37d25a', off: '#144120' },
+    };
+
+    function draw(t) {
+      const state = stateAt(t);
+      // background
+      ctx.fillStyle = '#0e1116'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#11151b'; ctx.fillRect(0, H * 0.72, W, H * 0.28); // floor
+
+      const cx = W * 0.42, cy = H * 0.5, scale = Math.min(W, H) / 520;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      // machine body + head
+      ctx.fillStyle = '#3a4048'; roundRect(-150, -40, 300, 220, 10); ctx.fill();
+      ctx.fillStyle = '#50565f'; roundRect(-130, -110, 260, 78, 8); ctx.fill();
+
+      // spindle / tool — oscillates while running
+      const moving = state === 'running';
+      const off = moving ? Math.sin(t * 6) * 70 : 0;
+      ctx.fillStyle = '#9aa4b0';
+      roundRect(-22 + off, -96, 44, 150, 6); ctx.fill();
+      ctx.fillStyle = '#cfd7e0';
+      roundRect(-10 + off, 44, 20, 26, 3); ctx.fill();
+
+      // chips/sparks while cutting
+      if (moving) {
+        for (let i = 0; i < 7; i++) {
+          const a = (t * 9 + i * 1.7) % 6.28;
+          ctx.fillStyle = i % 2 ? '#ffd27a' : '#ff9d3c';
+          const r = 8 + (i * 5);
+          ctx.beginPath();
+          ctx.arc(off + Math.cos(a) * r, 64 + Math.abs(Math.sin(a)) * 18, 2.4, 0, 6.28);
+          ctx.fill();
+        }
+      }
+
+      // andon stack light (red top, amber mid, green bottom)
+      const lx = 168, lw = 40;
+      drawLamp(lx, -118, lw, 'stopped', state);
+      drawLamp(lx, -72, lw, 'idle', state);
+      drawLamp(lx, -26, lw, 'running', state);
+      ctx.fillStyle = '#2a323c'; ctx.fillRect(lx + lw / 2 - 4, 20, 8, 60); // pole
+
+      ctx.restore();
+
+      // HUD
+      ctx.fillStyle = '#8b97a3';
+      ctx.font = `600 ${Math.round(14 * scale + 8)}px ui-monospace, Menlo, monospace`;
+      ctx.fillText('SHOP FLOOR INTELLIGENCE · DEMO FEED', 24, 40);
+      ctx.fillStyle = LAMP[state].on;
+      ctx.font = `700 ${Math.round(18 * scale + 10)}px ui-monospace, Menlo, monospace`;
+      ctx.fillText(state.toUpperCase(), 24, H - 28);
+
+      requestAnimationFrame(() => draw(performance.now() / 1000));
+    }
+
+    function drawLamp(x, y, w, lamp, state) {
+      const c = LAMP[lamp];
+      ctx.fillStyle = lamp === state ? c.on : c.off;
+      if (lamp === state) { ctx.shadowColor = c.on; ctx.shadowBlur = 26; }
+      roundRect(x, y, w, 38, 7); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    requestAnimationFrame(() => draw(performance.now() / 1000));
+  </script>
+</body>
+</html>

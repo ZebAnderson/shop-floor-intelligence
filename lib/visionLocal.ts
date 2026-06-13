@@ -2,7 +2,7 @@
 // andon lamp by brightness. Kept in its own module so the deployed serverless
 // bundle never pulls pngjs/fs in unless the local path is actually invoked.
 import { readFileSync } from "node:fs";
-import { join, dirname, isAbsolute } from "node:path";
+import { join, dirname, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { LAMPS } from "./frameGeometry.ts";
@@ -12,16 +12,26 @@ const require = createRequire(import.meta.url);
 const { PNG } = require("pngjs") as typeof import("pngjs");
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const ORDER: MachineState[] = ["stopped", "idle", "running"];
 
+// Benign-first: a low-signal / blank frame must NOT default to "stopped" (that would
+// fabricate a false alarm — the worst failure mode for a monitor). A lamp must be
+// clearly lit (bright AND well clear of the runner-up) or we fall back to "idle".
+const ORDER: MachineState[] = ["running", "idle", "stopped"];
+const MIN_LIT = 90; // mean (R+G+B) of a lit lamp region; off lamps sit well below
+const MIN_MARGIN = 30; // winning lamp must beat the runner-up by this much
+
+// frameRef must resolve inside the repo (never sourced from untrusted/HTTP input).
 function resolveFrame(frameRef: string): string {
-  return isAbsolute(frameRef) ? frameRef : join(repoRoot, frameRef);
+  const p = normalize(join(repoRoot, frameRef));
+  if (p !== repoRoot && !p.startsWith(repoRoot + sep)) {
+    throw new Error(`vision: frameRef escapes repo root: ${frameRef}`);
+  }
+  return p;
 }
 
 export function classifyFrameLocal(frameRef: string): MachineState {
   const png = PNG.sync.read(readFileSync(resolveFrame(frameRef)));
-  let best: MachineState = "idle";
-  let bestBrightness = -1;
+  const brightness: Record<MachineState, number> = { running: 0, idle: 0, stopped: 0 };
   for (const state of ORDER) {
     const r = LAMPS[state];
     let sum = 0;
@@ -33,11 +43,12 @@ export function classifyFrameLocal(frameRef: string): MachineState {
         n++;
       }
     }
-    const brightness = sum / (n || 1);
-    if (brightness > bestBrightness) {
-      bestBrightness = brightness;
-      best = state;
-    }
+    brightness[state] = sum / (n || 1);
   }
-  return best;
+  const ranked = ORDER.slice().sort((a, b) => brightness[b] - brightness[a]);
+  const [top, second] = ranked;
+  if (brightness[top] < MIN_LIT || brightness[top] - brightness[second] < MIN_MARGIN) {
+    return "idle"; // no clearly-lit lamp — benign default, never a phantom stop
+  }
+  return top;
 }

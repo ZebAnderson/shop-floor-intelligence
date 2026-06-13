@@ -69,4 +69,6 @@ export interface AgentReport {
   anomalies: Anomaly[]; // most-recent first
   machines: MachineSummary[];
   briefing: string[]; // headline briefing lines, anomalies first
+  vision?: string; // label of the vision backend that produced this report
+  reasoning?: string; // label of who authored the drafted actions (e.g. Claude Opus 4.8)
 }

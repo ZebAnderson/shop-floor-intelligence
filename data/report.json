@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-06-13T20:22:53.924Z",
+  "windowStart": "2026-06-13T08:00:00.000Z",
+  "windowEnd": "2026-06-13T08:07:00.000Z",
+  "anomalies": [
+    {
+      "machineId": "M-102",
+      "machineName": "Lathe",
+      "event": "stoppage",
+      "detectedAt": "2026-06-13T08:03:00.000Z",
+      "durationMin": 3,
+      "frames": [
+        "fixtures/frames/M-102_02.png",
+        "fixtures/frames/M-102_03.png",
+        "fixtures/frames/M-102_04.png",
+        "fixtures/frames/M-102_05.png"
+      ],
+      "draftedAction": "M-102 stopped ~3min at 08:03Z with low 63% util suggests planned tool change or operator interaction rather than crash. Review 4 captured frames for chuck/turret motion, chip buildup, or alarm beacon. If beacon red/no operator present: dispatch tech to check spindle load fault and door interlock. If operator present at panel: likely tool change/inspection, no action. Confirm part program resumed; if stopped >8min escalate to supervisor and log downtime against job.",
+      "briefing": "M-102 Lathe stopped 3min @08:03Z (63% util), likely tool change/operator interaction—verify resume, escalate if >8min stoppage."
+    }
+  ],
+  "machines": [
+    {
+      "machineId": "M-101",
+      "machineName": "CNC Mill",
+      "latestState": "running",
+      "utilization": 1,
+      "runningFrames": 8,
+      "totalFrames": 8
+    },
+    {
+      "machineId": "M-102",
+      "machineName": "Lathe",
+      "latestState": "running",
+      "utilization": 0.625,
+      "runningFrames": 5,
+      "totalFrames": 8
+    },
+    {
+      "machineId": "M-103",
+      "machineName": "Press Brake",
+      "latestState": "idle",
+      "utilization": 0.625,
+      "runningFrames": 5,
+      "totalFrames": 8
+    }
+  ],
+  "briefing": [
+    "M-102 Lathe stopped 3min @08:03Z (63% util), likely tool change/operator interaction—verify resume, escalate if >8min stoppage.",
+    "CNC Mill (M-101): running, 100% utilization (8/8 frames).",
+    "Lathe (M-102): running, 63% utilization (5/8 frames).",
+    "Press Brake (M-103): idle, 63% utilization (5/8 frames)."
+  ],
+  "vision": "Claude Opus 4.8",
+  "reasoning": "Claude Opus 4.8"
+}

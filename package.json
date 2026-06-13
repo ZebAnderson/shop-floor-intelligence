@@ -10,7 +10,13 @@
     "test": "node scripts/test.mjs",
     "test:smoke": "node scripts/test.mjs smoke",
     "eval": "node --disable-warning=ExperimentalWarning eval/run.ts",
-    "fixtures": "node --disable-warning=ExperimentalWarning fixtures/generate.ts"
+    "eval:claude": "VISION_BACKEND=claude node --env-file=.env --disable-warning=ExperimentalWarning eval/run.ts",
+    "fixtures": "node --disable-warning=ExperimentalWarning fixtures/generate.ts",
+    "report": "node --disable-warning=ExperimentalWarning scripts/report.ts",
+    "report:claude": "VISION_BACKEND=claude node --env-file=.env --disable-warning=ExperimentalWarning scripts/report.ts"
+  },
+  "engines": {
+    "node": ">=22.18"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
