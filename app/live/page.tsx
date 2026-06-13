@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildReport } from "@/lib/reportCore.ts";
 import { renderAgentReport } from "@/lib/view.ts";
-import { drawDemoFloor } from "@/lib/demoFloor.ts";
+import { drawDemoFloor, demoRegions } from "@/lib/demoFloor.ts";
 import { loadConfig, type FloorConfig } from "@/lib/machineConfig.ts";
 import type { FrameState, Observation } from "@/lib/types.ts";
 
@@ -152,9 +152,14 @@ export default function LivePage() {
     }
 
     const cfg = configRef.current;
-    const targets: Target[] = cfg
-      ? cfg.machines.map((m) => ({ id: m.id, name: m.name, region: m.region }))
-      : [{ id: labelFor(sourceRef.current), name: labelFor(sourceRef.current), region: { x: 0, y: 0, w: 1, h: 1 } }];
+    // The demo floor has fixed, known machine regions — use them directly so its states
+    // always line up (and never apply a saved config from a different/real camera to it).
+    const targets: Target[] =
+      sourceRef.current === "demo"
+        ? demoRegions()
+        : cfg
+          ? cfg.machines.map((m) => ({ id: m.id, name: m.name, region: m.region }))
+          : [{ id: labelFor(sourceRef.current), name: labelFor(sourceRef.current), region: { x: 0, y: 0, w: 1, h: 1 } }];
 
     inFlightRef.current = true;
     setClassifying(true);
@@ -291,7 +296,14 @@ export default function LivePage() {
         <a className="cta secondary" href="/setup">⚙ Set up machines</a>
       </div>
 
-      {config ? (
+      {sourceId === "demo" ? (
+        <p className="note">
+          Monitoring the demo floor’s <b>{demoRegions().length}</b> machines:{" "}
+          {demoRegions().map((m) => m.name).join(", ")}. (The demo floor uses its built-in
+          regions, so states always line up — point a real camera and{" "}
+          <a href="/setup">set up your floor →</a> for live machines.)
+        </p>
+      ) : config ? (
         <>
           <p className="note">
             Monitoring <b>{config.machines.length}</b> labeled machine{config.machines.length === 1 ? "" : "s"}:{" "}

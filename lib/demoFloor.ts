@@ -4,6 +4,7 @@
 // label by plain-English description) and /live (monitor the same regions), so the labels
 // you set up transfer straight into monitoring with no physical camera.
 import type { MachineState } from "./types.ts";
+import type { Region } from "./machineConfig.ts";
 
 export interface DemoMachine {
   name: string;
@@ -22,6 +23,18 @@ export const DEMO_MACHINES: DemoMachine[] = [
 
 const LAMP: Record<MachineState, string> = { stopped: "#e62d28", idle: "#f0b91e", running: "#37d25a" };
 const LAMP_OFF: Record<MachineState, string> = { stopped: "#461614", idle: "#463c12", running: "#144120" };
+
+// The demo floor's machines sit at fixed positions, so their regions are known exactly —
+// no vision grounding needed. /live uses these directly for the "Demo floor" source so the
+// monitored states always line up with what's rendered (a generous band per machine that
+// includes its andon stack light, the key signal).
+export function demoRegions(): { id: string; name: string; region: Region }[] {
+  return DEMO_MACHINES.map((m, i) => ({
+    id: `demo-${m.kind}-${i}`,
+    name: m.name,
+    region: { x: Math.max(0, Math.min(m.cx - 0.11, 0.78)), y: 0.18, w: 0.22, h: 0.56 },
+  }));
+}
 
 // Staggered so the floor always shows a mix; each machine spends ~6s stopped (≥2 samples).
 export function demoState(i: number, t: number): MachineState {
