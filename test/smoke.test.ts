@@ -28,8 +28,9 @@ test("dashboard renders the briefing + per-machine state, anomaly first", async 
   assert.ok(html.includes("STOPPED"), "anomaly headline rendered");
   assert.ok(html.includes("Drafted action"), "drafted action rendered");
 
-  // Utilization summary rendered.
-  assert.ok(/Utilization \d+%/.test(html), "utilization summary rendered");
+  // Time-in-state + availability summary rendered.
+  assert.ok(/\d+% running/.test(html), "per-machine running % rendered");
+  assert.ok(/\d+% available/.test(html), "observed-window availability rendered");
 
   // Most-recent anomaly appears BEFORE the machine grid.
   const anomalyIdx = html.indexOf("STOPPED");

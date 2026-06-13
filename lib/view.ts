@@ -52,12 +52,16 @@ export function renderAgentReport(report: AgentReport): string {
         (report.machines.reduce((s, m) => s + m.utilization, 0) / report.machines.length) * 100,
       )
     : 0;
+  const totalFramesAll = report.machines.reduce((s, m) => s + m.totalFrames, 0);
+  const stoppedAll = report.machines.reduce((s, m) => s + m.stoppedFrames, 0);
+  const fleetAvail = totalFramesAll ? Math.round((1 - stoppedAll / totalFramesAll) * 100) : 100;
 
   const kpis = `
     <div class="kpis" role="group" aria-label="At a glance">
       <div class="kpi"><span class="kpi-num">${report.machines.length}</span><span class="kpi-lab">machines watched</span></div>
       <div class="kpi ${alertCount ? "alarm" : ""}"><span class="kpi-num">${alertCount}</span><span class="kpi-lab">active alert${alertCount === 1 ? "" : "s"}</span></div>
       <div class="kpi"><span class="kpi-num">${avgUtil}%</span><span class="kpi-lab">avg utilization</span></div>
+      <div class="kpi"><span class="kpi-num">${fleetAvail}%</span><span class="kpi-lab">availability <span class="hint">obs.</span></span></div>
       <a class="cta" href="/live">▶ Live camera feed</a>
     </div>`;
 
@@ -72,10 +76,22 @@ export function renderAgentReport(report: AgentReport): string {
     ? report.anomalies
         .map((a) => {
           const block = a.event === "feed_obstructed";
+          const film = a.frames
+            .map((f) => f.split("/").pop() ?? "")
+            .filter((n) => n.length > 0)
+            .map(
+              (n, idx) =>
+                `<img class="frame" src="/frames/${esc(n)}" alt="investigated frame ${idx + 1}" loading="lazy" />`,
+            )
+            .join("");
+          const filmstrip = film
+            ? `<div class="filmstrip" aria-label="Frames the agent investigated">${film}<span class="film-cap">last clear view → caught</span></div>`
+            : "";
           return `
       <article class="panel alert ${block ? "alert-block" : "alert-stop"} section" data-machine="${esc(a.machineId)}">
-        <div class="alert-head">${eventChip(a.event)}<span class="when"><span class="live-dot ${block ? "obstructed" : "stopped"}" aria-hidden="true"></span>${esc(hhmm(a.detectedAt))} · ${esc(a.machineName)} (${esc(a.machineId)}) · ~${a.durationMin} min</span></div>
+        <div class="alert-head">${eventChip(a.event)}${a.ongoing ? `<span class="chip chip-ongoing">Ongoing</span>` : ""}<span class="when"><span class="live-dot ${block ? "obstructed" : "stopped"}" aria-hidden="true"></span>${esc(hhmm(a.detectedAt))} · ${esc(a.machineName)} (${esc(a.machineId)}) · ~${a.durationMin} min</span></div>
         <p class="headline">${esc(a.briefing)}</p>
+        ${filmstrip}
         <div class="action">
           <span class="label">Drafted action${reasoningLabel ? ` · authored by ${esc(reasoningLabel)}` : ""}</span>
           <p class="prose">${esc(a.draftedAction)}</p>
@@ -104,14 +120,21 @@ export function renderAgentReport(report: AgentReport): string {
             const strip = (m.timeline ?? [])
               .map((t) => `<span class="tick ${safeState(t)}" title="${STATE_LABEL[safeState(t)]}"></span>`)
               .join("");
+            const total = m.totalFrames || 1;
+            const seg = (n: number) => `${(n / total) * 100}%`;
             return `<div class="machine">
             <div class="name"><span class="dot ${esc(state)}" aria-hidden="true"></span>${esc(m.machineName)} <span class="sub">${esc(m.machineId)}</span></div>
             <div class="state ${esc(state)}">${esc(STATE_LABEL[state])}</div>
             ${strip ? `<div class="strip" aria-label="recent states">${strip}</div>` : ""}
             <div class="util">
-              <span class="label">Utilization ${pct}%</span>
-              <div class="bar"><span style="width:${pct}%"></span></div>
-              <span class="label">${m.runningFrames}/${m.totalFrames} frames running${m.obstructedFrames ? ` · ${m.obstructedFrames} blocked` : ""}</span>
+              <span class="label">${pct}% running · ${Math.round(m.availability * 100)}% available <span class="hint">obs.</span></span>
+              <div class="bar stacked" role="img" aria-label="${m.runningFrames} running, ${m.idleFrames} idle, ${m.stoppedFrames} stopped, ${m.obstructedFrames} blocked of ${m.totalFrames} frames">
+                <span class="seg running" style="width:${seg(m.runningFrames)}"></span>
+                <span class="seg idle" style="width:${seg(m.idleFrames)}"></span>
+                <span class="seg stopped" style="width:${seg(m.stoppedFrames)}"></span>
+                <span class="seg obstructed" style="width:${seg(m.obstructedFrames)}"></span>
+              </div>
+              <span class="label">${m.runningFrames}/${m.totalFrames} running${m.stoppedFrames ? ` · ${m.stoppedFrames} stopped` : ""}${m.obstructedFrames ? ` · ${m.obstructedFrames} blocked` : ""}</span>
             </div>
           </div>`;
           })
@@ -124,8 +147,8 @@ export function renderAgentReport(report: AgentReport): string {
       <h1>Shop Floor Intelligence</h1>
       <span class="sub" role="status" aria-live="polite"><span class="live-dot running" aria-hidden="true"></span>monitoring · vision: ${esc(visionLabel)} · window ${esc(hhmm(report.windowStart))}–${esc(hhmm(report.windowEnd))}</span>
     </header>
-    ${kpis}
     ${legend}
+    ${kpis}
     <section class="section" aria-label="Caught by the agent">
       <p class="eyebrow">Caught by the agent</p>
       ${anomalies}

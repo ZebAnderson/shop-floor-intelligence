@@ -14,6 +14,9 @@ export function ingestFrame(raw: RawFrame, index = 0): ParsedRecord {
   }
   const machineId = String(raw.machineId ?? "").trim();
   if (!machineId) throw new Error("ingest: missing machineId");
+  if (machineId.length > 64) {
+    throw new Error(`ingest: machineId too long (${machineId.length} > 64 chars)`);
+  }
 
   const frameRef = String(raw.frameRef ?? "").trim();
   if (!frameRef) throw new Error(`ingest: missing frameRef for ${machineId}`);

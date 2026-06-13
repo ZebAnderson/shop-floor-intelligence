@@ -395,6 +395,19 @@ a {
   font-size: 13px;
 }
 
+/* Moment-of-catch banner (one-shot, meaningful motion only) */
+.caught-banner {
+  margin: 8px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--stop);
+  border-left: 4px solid var(--stop);
+  background: rgba(242, 84, 91, 0.14);
+  color: var(--text);
+  font-weight: 700;
+  border-radius: 4px;
+  animation: pulse 0.9s ease-in-out 2;
+}
+
 /* KPI status strip (at-a-glance, F-pattern top-left) */
 .kpis {
   display: flex;
@@ -474,6 +487,59 @@ a {
 }
 .tick.obstructed {
   background: var(--blocked);
+}
+
+/* Investigated-frames filmstrip (visible proof the agent looked) */
+.filmstrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 12px;
+}
+.filmstrip .frame {
+  width: 84px;
+  height: 63px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #000;
+}
+.filmstrip .film-cap {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+/* Time-in-state stacked bar */
+.bar.stacked {
+  display: flex;
+}
+.bar.stacked .seg {
+  height: 100%;
+}
+.bar.stacked .seg.running {
+  background: var(--run);
+}
+.bar.stacked .seg.idle {
+  background: var(--idle);
+}
+.bar.stacked .seg.stopped {
+  background: var(--stop);
+}
+.bar.stacked .seg.obstructed {
+  background: var(--blocked);
+}
+
+.chip-ongoing {
+  background: rgba(242, 165, 60, 0.18);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.hint {
+  opacity: 0.6;
+  font-size: 0.85em;
 }
 
 /* Footer help line */

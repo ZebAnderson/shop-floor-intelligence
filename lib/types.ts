@@ -58,6 +58,7 @@ export interface Anomaly {
   event: AnomalyKind;
   detectedAt: string; // ISO timestamp of the first frame in the run
   durationMin: number; // sustained duration in minutes
+  ongoing: boolean; // still in this state at the latest frame
   frames: string[]; // frameRefs the agent inspected
   draftedAction: string; // the next step the agent proposes
   briefing: string; // one-line shift-briefing entry
@@ -69,9 +70,12 @@ export interface MachineSummary {
   machineName: string;
   latestState: FrameState;
   utilization: number; // fraction of observed window spent running (0..1)
+  availability: number; // observed-window uptime: 1 - stopped/total (0..1)
   runningFrames: number;
-  totalFrames: number;
+  idleFrames: number;
+  stoppedFrames: number;
   obstructedFrames: number;
+  totalFrames: number;
   timeline: FrameState[]; // ordered per-frame states, for the sparkline strip
 }
 

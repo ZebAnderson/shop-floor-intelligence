@@ -84,6 +84,7 @@ function detectStoppages(timeline: Observation[]): Anomaly[] {
         event: "stoppage",
         detectedAt: first.timestamp,
         durationMin,
+        ongoing,
         frames: investigated,
         draftedAction: `Dispatch the cell lead to ${first.machineName} (${first.machineId}); stopped ~${durationMin} min${ongoing ? " and still down" : ""} since ${when}. Confirm planned tool change vs. fault, clear the stop, and log the downtime reason.`,
         briefing: `${first.machineName} (${first.machineId}) STOPPED ~${durationMin} min from ${when}${ongoing ? " (ongoing)" : ""} — action drafted.`,
@@ -126,6 +127,7 @@ function detectObstructions(timeline: Observation[]): Anomaly[] {
         event: "feed_obstructed",
         detectedAt: first.timestamp,
         durationMin,
+        ongoing,
         frames: investigated,
         draftedAction: `Check the camera on ${first.machineName} (${first.machineId}); its view has been obstructed ~${durationMin} min${ongoing ? " and is still blocked" : ""} since ${when} (lens blocked or covered, knocked out of position, or too dark to read). Clear the obstruction or reposition the camera — machine state is unknown while the feed is blocked.`,
         briefing: `${first.machineName} (${first.machineId}) CAMERA BLOCKED ~${durationMin} min from ${when}${ongoing ? " (ongoing)" : ""} — feed obstructed, check the camera.`,
@@ -138,17 +140,25 @@ function detectObstructions(timeline: Observation[]): Anomaly[] {
 
 function summarize(timeline: Observation[]): MachineSummary {
   const totalFrames = timeline.length;
-  const runningFrames = timeline.filter((o) => o.state === "running").length;
-  const obstructedFrames = timeline.filter((o) => o.state === "obstructed").length;
+  const count = (s: string) => timeline.filter((o) => o.state === s).length;
+  const runningFrames = count("running");
+  const idleFrames = count("idle");
+  const stoppedFrames = count("stopped");
+  const obstructedFrames = count("obstructed");
   const latest = timeline[timeline.length - 1];
   return {
     machineId: latest.machineId,
     machineName: latest.machineName,
     latestState: latest.state,
     utilization: totalFrames > 0 ? runningFrames / totalFrames : 0,
+    // Observed-window availability: share of observed time NOT stopped. Honest proxy,
+    // not OEE-grade (no scheduled-production calendar to separate planned-off time).
+    availability: totalFrames > 0 ? 1 - stoppedFrames / totalFrames : 1,
     runningFrames,
-    totalFrames,
+    idleFrames,
+    stoppedFrames,
     obstructedFrames,
+    totalFrames,
     timeline: timeline.map((o) => o.state),
   };
 }
@@ -165,10 +175,13 @@ export function buildReport(observations: Observation[]): AgentReport {
     summaries.push(summarize(timeline));
   }
 
+  // Rank by consequence, not just recency (ISA-18.2 alarm prioritization):
+  // still-ongoing first, then longer downtime, with obstruction (machine state
+  // unknown) nudged up; most-recent detection breaks ties.
+  const score = (a: Anomaly) =>
+    (a.ongoing ? 1000 : 0) + a.durationMin + (a.event === "feed_obstructed" ? 50 : 0);
   anomalies.sort(
-    (a, b) =>
-      b.detectedAt.localeCompare(a.detectedAt) ||
-      a.machineId.localeCompare(b.machineId),
+    (a, b) => score(b) - score(a) || b.detectedAt.localeCompare(a.detectedAt),
   );
 
   const briefing = [

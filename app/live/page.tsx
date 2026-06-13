@@ -1,11 +1,11 @@
 "use client";
 
 // Live camera feed — the watch -> catch -> draft loop running for real.
-// Capture happens in the browser (a Logitech Brio via getUserMedia, or the built-in
-// demo machine loop); each sampled frame is classified by Claude Opus 4.8 through
-// /api/vision; the reused agent (buildReport) catches a sustained stoppage and drafts
-// the action live. Identical code runs locally and on Vercel (getUserMedia works on
-// https and on http://localhost).
+// Capture happens in the browser (a Logitech Brio via getUserMedia, a screen/window
+// share via getDisplayMedia — e.g. /loop3d.html — or the built-in demo loop); each
+// sampled frame is classified by Claude Opus 4.8 through /api/vision; the reused agent
+// (buildReport) catches a sustained stoppage or obstruction and drafts the action live.
+// Identical code runs locally and on Vercel (getUserMedia works on https + localhost).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { buildReport } from "@/lib/reportCore.ts";
 import { renderAgentReport } from "@/lib/view.ts";
@@ -54,10 +54,13 @@ export default function LivePage() {
   const [cameras, setCameras] = useState<Source[]>([]);
   const [sourceId, setSourceId] = useState<string>("demo");
   const [running, setRunning] = useState(false);
+  const [classifying, setClassifying] = useState(false);
   const [current, setCurrent] = useState<FrameState | null>(null);
+  const [caught, setCaught] = useState<string | null>(null);
   const [reportHtml, setReportHtml] = useState<string>("");
   const [logs, setLogs] = useState<{ t: string; state: FrameState; viaClaude: boolean }[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [, setNowTick] = useState(0); // forces heartbeat re-render
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const demoRef = useRef<HTMLCanvasElement | null>(null);
@@ -66,14 +69,21 @@ export default function LivePage() {
   const obsRef = useRef<Observation[]>([]);
   const timerRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+  const hbRef = useRef<number | null>(null);
   const countRef = useRef(0);
   const sourceRef = useRef<string>("demo");
+  const lastSweepRef = useRef<number>(0);
+  const prevAnomRef = useRef<number>(0);
+  const caughtTimerRef = useRef<number | null>(null);
 
-  const usingCamera = sourceId !== "demo";
+  const usingVideo = sourceId !== "demo"; // camera or screen share -> <video>
 
   const labelFor = useCallback(
-    (id: string): string =>
-      id === "demo" ? "Demo machine" : cameras.find((c) => c.id === id)?.label ?? "Camera",
+    (id: string): string => {
+      if (id === "demo") return "Demo machine";
+      if (id === "screen") return "Screen share";
+      return cameras.find((c) => c.id === id)?.label ?? "Camera";
+    },
     [cameras],
   );
 
@@ -111,7 +121,6 @@ export default function LivePage() {
       }
     }
 
-    // andon stack light: red (top), amber, green (bottom)
     const lamps: MachineState[] = ["stopped", "idle", "running"];
     lamps.forEach((lamp, i) => {
       const lit = lamp === state;
@@ -143,13 +152,22 @@ export default function LivePage() {
         state,
       };
       obsRef.current = [...obsRef.current, obs];
+      lastSweepRef.current = now.getTime();
       setCurrent(state);
-      setLogs((l) =>
-        [{ t: now.toLocaleTimeString(), state, viaClaude }, ...l].slice(0, 40),
-      );
+      setLogs((l) => [{ t: now.toLocaleTimeString(), state, viaClaude }, ...l].slice(0, 40));
+
       const rep = buildReport(obsRef.current);
       rep.vision = "Claude Opus 4.8";
       setReportHtml(renderAgentReport(rep));
+
+      // Moment of catch: announce when a new anomaly first crosses the threshold.
+      if (rep.anomalies.length > prevAnomRef.current) {
+        const kind = state === "obstructed" ? "Camera obstructed" : "Stoppage caught";
+        setCaught(`${kind} on ${label}`);
+        if (caughtTimerRef.current !== null) clearTimeout(caughtTimerRef.current);
+        caughtTimerRef.current = window.setTimeout(() => setCaught(null), 6000);
+      }
+      prevAnomRef.current = rep.anomalies.length;
     },
     [labelFor],
   );
@@ -159,8 +177,8 @@ export default function LivePage() {
     const ctx = cap?.getContext("2d");
     if (!cap || !ctx) return;
 
-    const camera = sourceRef.current !== "demo";
-    if (camera) {
+    const fromVideo = sourceRef.current !== "demo";
+    if (fromVideo) {
       const v = videoRef.current;
       if (!v || v.readyState < 2) return;
       ctx.drawImage(v, 0, 0, CAP_W, CAP_H);
@@ -179,6 +197,7 @@ export default function LivePage() {
     }
 
     const imageBase64 = cap.toDataURL("image/jpeg", 0.6).split(",")[1];
+    setClassifying(true);
     try {
       const res = await fetch("/api/vision", {
         method: "POST",
@@ -195,6 +214,8 @@ export default function LivePage() {
       record(state, true);
     } catch {
       setError("Network error contacting /api/vision.");
+    } finally {
+      setClassifying(false);
     }
   }, [record]);
 
@@ -216,9 +237,12 @@ export default function LivePage() {
 
   const stop = useCallback(() => {
     setRunning(false);
-    if (timerRef.current !== null) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    setClassifying(false);
+    for (const ref of [timerRef, hbRef]) {
+      if (ref.current !== null) {
+        clearInterval(ref.current);
+        ref.current = null;
+      }
     }
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
@@ -234,39 +258,52 @@ export default function LivePage() {
     setError(null);
     obsRef.current = [];
     countRef.current = 0;
+    prevAnomRef.current = 0;
+    lastSweepRef.current = 0;
     setLogs([]);
     setCurrent(null);
+    setCaught(null);
     setReportHtml("");
     sourceRef.current = sourceId;
     try {
-      if (usingCamera) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { deviceId: { exact: sourceId } },
-        });
+      if (sourceId === "demo") {
+        rafRef.current = requestAnimationFrame(drawDemo);
+      } else {
+        const stream =
+          sourceId === "screen"
+            ? await navigator.mediaDevices.getDisplayMedia({ video: true })
+            : await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: sourceId } } });
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
-      } else {
-        rafRef.current = requestAnimationFrame(drawDemo);
       }
       setRunning(true);
       timerRef.current = window.setInterval(sample, SAMPLE_MS);
+      hbRef.current = window.setInterval(() => setNowTick((t) => t + 1), 500);
       window.setTimeout(sample, 700);
     } catch {
-      setError("Could not start the selected source.");
+      setError("Could not start the selected source (permission denied or cancelled).");
     }
   }
 
   useEffect(() => stop, [stop]);
 
+  let heartbeat = "";
+  if (running && lastSweepRef.current) {
+    const since = Date.now() - lastSweepRef.current;
+    const ago = Math.max(0, Math.round(since / 1000));
+    const next = Math.max(0, Math.ceil((SAMPLE_MS - since) / 1000));
+    heartbeat = `last sweep ${ago}s ago · next in ${next}s · ${countRef.current} frames watched`;
+  }
+
   return (
     <main className="wrap">
       <div className="topbar">
         <h1>Live Feed</h1>
-        <span className="sub">
-          <span className="live-dot running" /> browser capture → Claude Opus 4.8 → agent
+        <span className="sub" role="status" aria-live="polite">
+          <span className="live-dot running" aria-hidden="true" /> browser capture → Claude Opus 4.8 → agent
         </span>
       </div>
       <div className="cta-row">
@@ -277,12 +314,14 @@ export default function LivePage() {
 
       <div className="controls">
         <select
-          aria-label="Camera source"
+          aria-label={running ? "Source (locked while monitoring)" : "Camera source"}
           value={sourceId}
           onChange={(e) => setSourceId(e.target.value)}
           disabled={running}
+          title={running ? "Stop monitoring to change source" : "Choose what the agent watches"}
         >
           <option value="demo">Demo machine loop (simulated)</option>
+          <option value="screen">Screen / window share (sample /loop3d.html)</option>
           {cameras.map((c) => (
             <option key={c.id} value={c.id}>
               {c.label}
@@ -290,53 +329,65 @@ export default function LivePage() {
           ))}
         </select>
         {cameras.length === 0 && (
-          <button onClick={enableCameras} disabled={running}>
+          <button onClick={enableCameras} disabled={running} aria-label="Enable cameras">
             Enable cameras
           </button>
         )}
         {running ? (
-          <button onClick={stop}>Stop</button>
+          <button onClick={stop} aria-label="Stop monitoring">Stop</button>
         ) : (
-          <button className="primary" onClick={start}>
+          <button className="primary" onClick={start} aria-label="Start monitoring">
             ▶ Start monitoring
           </button>
         )}
+        {classifying && <span className="sub" role="status">classifying…</span>}
         {current && (
-          <span className={`state ${current}`}>
+          <span className={`state ${current}`} aria-label={`current state ${current}`}>
             now: {current}
           </span>
         )}
       </div>
-      {error && <p className="err">{error}</p>}
+      {heartbeat && <p className="sub" role="status" aria-live="polite">{heartbeat}</p>}
+      {error && <p className="err" role="alert">{error}</p>}
+      <div aria-live="assertive">
+        {caught && <p className="caught-banner">⚠ {caught} — action drafted</p>}
+      </div>
 
       <div className="live-layout">
         <div>
           <div className="feed">
-            <video ref={videoRef} muted playsInline style={{ display: usingCamera ? "block" : "none" }} />
+            <video ref={videoRef} muted playsInline style={{ display: usingVideo ? "block" : "none" }} />
             <canvas
               ref={demoRef}
               width={CAP_W}
               height={CAP_H}
-              style={{ display: usingCamera ? "none" : "block" }}
+              style={{ display: usingVideo ? "none" : "block" }}
             />
-            {current && <div className={`verdict state ${current}`}>{current}</div>}
+            {current && (
+              <div className={`verdict state ${current}`} aria-label={`current state ${current}`}>
+                {current}
+              </div>
+            )}
           </div>
           <p className="note">
             Capture is in your browser; only the sampled frame is sent to{" "}
-            <code>/api/vision</code> (Claude Opus 4.8). Point a Logitech Brio at a real
-            machine — or at <a href="/loop.html" target="_blank" rel="noreferrer">/loop.html</a>{" "}
-            on a second screen — or just use the built-in demo loop. A sustained{" "}
-            <b>stopped</b> read (≥2 samples) is caught as a stoppage and an action is
-            drafted. <b>Cover the lens</b> and the agent flags the feed as{" "}
-            <b>obstructed</b> — skipping the paid call when the view is unusable.
+            <code>/api/vision</code> (Claude Opus 4.8). The agent sweeps every {SAMPLE_MS / 1000}s,
+            flags a sustained <b>stopped</b> read (≥2 samples) as a caught stoppage and drafts the
+            next action. Try the 3D shop feed at{" "}
+            <a href="/loop3d.html" target="_blank" rel="noreferrer">/loop3d.html</a> (or the 2D{" "}
+            <a href="/loop.html" target="_blank" rel="noreferrer">/loop.html</a>) — film it with a
+            Logitech Brio, or pick <b>Screen / window share</b> and select that tab. <b>Cover the
+            lens</b> and the agent flags the feed <b>obstructed</b>, skipping the paid call when the
+            view is unusable.
           </p>
           <ul className="classlog" aria-label="Classification log">
             {logs.map((l, i) => (
               <li key={i}>
-                {l.t} — <span className={`s state ${l.state}`}>{l.state}</span>{" "}
-                <span className="sub">
-                  {l.viaClaude ? "· Claude Opus 4.8" : "· obstruction check"}
-                </span>
+                {l.t} —{" "}
+                <span className={`s state ${l.state}`} aria-label={`state ${l.state}`}>
+                  {l.state}
+                </span>{" "}
+                <span className="sub">{l.viaClaude ? "· Claude Opus 4.8" : "· obstruction check"}</span>
               </li>
             ))}
           </ul>
@@ -348,8 +399,9 @@ export default function LivePage() {
             <div className="panel">
               <p className="eyebrow">Agent</p>
               <p className="note">
-                Start monitoring to watch the agent classify each frame and catch a
-                stoppage live.
+                Start monitoring to watch the agent classify each frame, catch a sustained stoppage
+                or a blocked camera, and draft the next action — live. Try covering the lens to
+                trigger an obstruction catch.
               </p>
             </div>
           )}

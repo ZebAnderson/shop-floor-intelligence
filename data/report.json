@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-13T20:56:29.148Z",
+  "generatedAt": "2026-06-13T21:42:22.680Z",
   "windowStart": "2026-06-13T08:00:00.000Z",
   "windowEnd": "2026-06-13T08:07:00.000Z",
   "anomalies": [
@@ -9,14 +9,15 @@
       "event": "stoppage",
       "detectedAt": "2026-06-13T08:03:00.000Z",
       "durationMin": 3,
+      "ongoing": false,
       "frames": [
         "fixtures/frames/M-102_02.png",
         "fixtures/frames/M-102_03.png",
         "fixtures/frames/M-102_04.png",
         "fixtures/frames/M-102_05.png"
       ],
-      "draftedAction": "M-102 stopped ~3min at 08:03Z with 63% util (no full fault state). Frame review suggests likely planned operator action (part swap/inspection/chip clear) rather than crash, as no alarm escalation or sustained idle pattern observed. Next step: dispatch operator/lead to M-102 to confirm spindle and turret status, check for chip wrap or coolant interlock, and verify program is paused vs. faulted. If no operator present and no alarm, restart cycle after part/tool verification. Escalate to maintenance only if E-stop, axis fault, or tool-load alarm is confirmed. Log resume time.",
-      "briefing": "08:03Z M-102 lathe 3-min stoppage (63% util, no fault) — likely operator part swap/chip clear; lead dispatched to confirm status & resume, escalate if alarm found."
+      "draftedAction": "M-102 stopped ~3min at 08:03Z, 63% util consistent with cyclic interruptions (likely planned tool change or operator chip-clear/in-process gauging) rather than crash—no spindle-overload or alarm indicators in frames and no debris/collision signature. Next: dispatch operator to confirm M-102 is in MDI/tool-change hold vs. faulted; check controller for active alarm code and verify spindle/turret position. If no operator present within 2 min or alarm active, escalate to supervisor and tag for maintenance; if planned tool change, log expected restart and clear.",
+      "briefing": "08:03Z M-102 lathe stopped ~3min (util 63%)—probable planned tool change/operator hold, no crash signature; operator dispatched to confirm alarm-free restart, escalate if faulted."
     }
   ],
   "machines": [
@@ -25,9 +26,12 @@
       "machineName": "CNC Mill",
       "latestState": "running",
       "utilization": 1,
+      "availability": 1,
       "runningFrames": 8,
-      "totalFrames": 8,
+      "idleFrames": 0,
+      "stoppedFrames": 0,
       "obstructedFrames": 0,
+      "totalFrames": 8,
       "timeline": [
         "running",
         "running",
@@ -44,9 +48,12 @@
       "machineName": "Lathe",
       "latestState": "running",
       "utilization": 0.625,
+      "availability": 0.625,
       "runningFrames": 5,
-      "totalFrames": 8,
+      "idleFrames": 0,
+      "stoppedFrames": 3,
       "obstructedFrames": 0,
+      "totalFrames": 8,
       "timeline": [
         "running",
         "running",
@@ -63,9 +70,12 @@
       "machineName": "Press Brake",
       "latestState": "idle",
       "utilization": 0.625,
+      "availability": 1,
       "runningFrames": 5,
-      "totalFrames": 8,
+      "idleFrames": 3,
+      "stoppedFrames": 0,
       "obstructedFrames": 0,
+      "totalFrames": 8,
       "timeline": [
         "idle",
         "idle",
@@ -79,7 +89,7 @@
     }
   ],
   "briefing": [
-    "08:03Z M-102 lathe 3-min stoppage (63% util, no fault) — likely operator part swap/chip clear; lead dispatched to confirm status & resume, escalate if alarm found.",
+    "08:03Z M-102 lathe stopped ~3min (util 63%)—probable planned tool change/operator hold, no crash signature; operator dispatched to confirm alarm-free restart, escalate if faulted.",
     "CNC Mill (M-101): running, 100% utilization (8/8 frames).",
     "Lathe (M-102): running, 63% utilization (5/8 frames).",
     "Press Brake (M-103): idle, 63% utilization (5/8 frames)."
