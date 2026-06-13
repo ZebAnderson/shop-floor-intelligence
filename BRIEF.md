@@ -29,6 +29,12 @@ watch-catch-draft. If the camera is blocked or covered, the agent raises a disti
 machine stoppage. Two reproducible demo feeds ship in the app: a 3D corner-mounted shop
 view (`/loop3d.html`) and a 2D loop (`/loop.html`).
 
+**Set up in plain English.** At `/setup` the operator describes the machines in natural
+language — typed or spoken ("the one on the left is Lathe 1, the blue one on the right is a
+CNC") — and Claude Opus 4.8 vision grounds each into a labeled region of the camera frame.
+Confirm/edit, save, and monitoring tracks each named machine separately. No PLCs, no
+per-machine wiring — that's how the agent knows *which* machine is down.
+
 **Supporting context (not the headline).** Per machine: utilization, time-in-state, a
 per-frame timeline, and observed-window availability (an honest proxy, not OEE-grade). The
 caught event + the drafted action stay the hero.

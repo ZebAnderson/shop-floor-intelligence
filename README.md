@@ -14,6 +14,12 @@ headline (this is an agent, not an image analyzer or a dashboard).
 
 ## What it does
 
+- **Plain-English onboarding (`/setup`).** Describe your machines in natural language —
+  typed or **spoken** ("the machine on the left is Lathe 1, the middle one is a sander, the
+  blue one on the right is a CNC"). Claude Opus 4.8 vision grounds each named machine into a
+  labeled **region** of the frame; you edit/confirm, save (localStorage, editable), then
+  monitoring tracks each named machine separately. This is how the agent knows *which*
+  machine is down.
 - **Watch → catch → draft loop.** Classifies each frame (running / idle / stopped /
   obstructed), debounces a sustained stoppage, and drafts a Claude-authored action + a
   one-line shift briefing. Most-consequential alert first (ongoing > resolved, longer
@@ -93,8 +99,8 @@ The landing page builds static (no key needed); only `/api/vision` needs the key
 
 | Path | Purpose |
 |------|---------|
-| `app/` | Next.js App Router: `page.tsx` (report), `live/page.tsx`, `api/vision/route.ts` |
-| `lib/` | `ingest`, `vision` + `visionLocal`, `reportCore` (agent), `reason` (Claude action), `view` (renderer), `types`, `frameGeometry` |
+| `app/` | App Router: `page.tsx` (report), `live/page.tsx`, `setup/page.tsx` (onboarding), `api/vision/route.ts`, `api/setup/route.ts` |
+| `lib/` | `ingest`, `vision` + `visionLocal`, `reportCore` (agent), `reason` (Claude action), `view` (renderer), `types`, `frameGeometry`, `machineConfig` (floor labels), `setup` (vision grounding), `demoFloor` |
 | `fixtures/` | `sequence.json` (source-of-truth timeline), `generate.ts`, generated `frames/` |
 | `eval/` | `run.ts`, `ground_truth.csv`, `TARGET` |
 | `public/` | `loop.html`, `loop3d.html`, `frames/` (served thumbnails) |

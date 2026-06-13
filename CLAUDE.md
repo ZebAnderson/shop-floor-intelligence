@@ -22,7 +22,8 @@ https://shop-floor-intelligence.vercel.app. The sections below ("What done looks
 **`README.md`** (run/test/deploy + scripts) and **`docs/ARCHITECTURE.md`** (data flow,
 modules, vision backends, KPIs, routes, conventions). Quick reference:
 
-- **Run:** `npm install` → `npm run dev` (`/`, `/live`, `/loop.html`, `/loop3d.html`).
+- **Run:** `npm install` → `npm run dev` (`/`, `/setup`, `/live`, `/loop.html`, `/loop3d.html`).
+- **Onboarding:** `/setup` grounds a plain-English machine description into labeled frame regions (Claude vision) saved to localStorage; `/live` then monitors each named machine's region separately. This is how the agent knows which machine is which — see `docs/ARCHITECTURE.md`.
 - **Test:** `npm test` (Node-native runner). **Eval:** `npm run eval` (local) / `npm run eval:claude` (real Opus 4.8). **Bake report:** `npm run report:claude`.
 - **Deploy:** `npm run build` (== what Vercel runs) → `vercel --prod --yes`.
 

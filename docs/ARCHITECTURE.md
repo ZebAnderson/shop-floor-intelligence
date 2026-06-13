@@ -35,6 +35,9 @@ RawFrame ─▶ ingestFrame ─▶ ParsedRecord ─▶ classifyFrame ─▶ Obse
 | `lib/reportCore.ts` | **The agent** — stoppage/obstruction detection, drafting, KPIs, consequence sort. Pure/client-safe |
 | `lib/agent.ts` | `observe()` (classify a timeline) + `runAgent()` = observe + `buildReport` |
 | `lib/reason.ts` | Optional **Claude-authored** drafted action + briefing for a caught anomaly |
+| `lib/machineConfig.ts` | Floor config types + localStorage persistence + pure `clampRegion`/`normalizeMachines` |
+| `lib/setup.ts` | `identifyMachines(image, description)` — Claude Opus 4.8 grounds the description into regions |
+| `lib/demoFloor.ts` | Shared 3-machine demo floor (used by `/setup` + `/live` demo source) |
 | `lib/view.ts` | `renderAgentReport(report)` → dashboard HTML |
 | `app/page.tsx` | Static landing report (imports `data/report.json`) |
 | `app/live/page.tsx` | Live browser-capture page |
@@ -76,6 +79,20 @@ instant in-browser obstruction pre-check that skips the paid call when the view 
   cause hypothesis + next action + briefing (frozen into `data/report.json` at bake time);
   otherwise a deterministic template is used.
 
+## Onboarding & multi-region monitoring ("set up in plain English")
+
+One camera can see several machines, so the agent must be told which region is which.
+`/setup` captures a still, takes the operator's natural-language description (typed or
+spoken via the Web Speech API), and `POST /api/setup` has Claude Opus 4.8 ground each named
+machine into a normalized bounding box (`region`). The operator confirms/edits the labels;
+the floor config (`MachineRegion[]`) is saved to **localStorage** (no backend yet —
+editable, browser-local). `/live` then reads the config and, each sweep, **crops every
+labeled region** from the captured frame and classifies it separately (obstruction
+pre-check + Claude), producing one `Observation` per machine → `buildReport` → a per-named
+-machine report. With no config, it classifies the whole frame as a single source. The
+3-machine `lib/demoFloor.ts` is shared by `/setup` and `/live` so labels set up on the demo
+floor transfer straight into monitoring with no physical camera.
+
 ## KPIs (and honesty caveats)
 
 All derived from data already held (per-frame state timeline, stoppage durations) — no new
@@ -97,8 +114,10 @@ Quality (part/defect counts), TEEP (shift calendar), true MTTA (a human-ack acti
 | Route | Type | Purpose |
 |-------|------|---------|
 | `/` | static | Agent report baked from `data/report.json` |
-| `/live` | static (client) | Browser capture (Brio / screen share / demo loop) → `/api/vision` → live agent |
+| `/setup` | static (client) | Plain-English onboarding — capture a frame, describe machines, Claude grounds them into editable labeled regions, save to localStorage |
+| `/live` | static (client) | Browser capture (Brio / screen share / demo floor) → `/api/vision` → live agent. Multi-region when a floor config exists |
 | `/api/vision` | serverless (nodejs) | `POST {imageBase64, mediaType?}` → `{state, model}`; size-capped, validated, no error leakage |
+| `/api/setup` | serverless (nodejs) | `POST {imageBase64, description}` → `{machines:[{name,kind,region,note}]}` via Claude vision grounding |
 | `/loop.html` | static | Zero-dependency 2D machine loop (filmable + sampleable; offline fallback) |
 | `/loop3d.html` | static | Three.js r184 corner-cam shop scene (CDN import map; `preserveDrawingBuffer` for sampling) |
 
