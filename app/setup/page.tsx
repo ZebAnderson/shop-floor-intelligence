@@ -48,20 +48,37 @@ interface SRLike {
   stop(): void;
 }
 
-// Append newly-identified machines to the existing list (so describing more machines
-// adds to it rather than replacing). Re-describing a machine by the same name updates
-// it in place; genuinely new names are appended with a guaranteed-unique id.
+// Two machines are "the same" if their boxes overlap meaningfully (or one's center sits
+// inside the other) — so re-identifying the same physical machine (even with a different
+// auto-guessed name) doesn't create a duplicate.
+function sameMachine(a: Region, b: Region): boolean {
+  const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  const inter = ix * iy;
+  const iou = inter > 0 ? inter / (a.w * a.h + b.w * b.h - inter) : 0;
+  const acx = a.x + a.w / 2;
+  const acy = a.y + a.h / 2;
+  const bcx = b.x + b.w / 2;
+  const bcy = b.y + b.h / 2;
+  const centerIn =
+    (acx >= b.x && acx <= b.x + b.w && acy >= b.y && acy <= b.y + b.h) ||
+    (bcx >= a.x && bcx <= a.x + a.w && bcy >= a.y && bcy <= a.y + a.h);
+  return iou > 0.25 || centerIn;
+}
+
+// Add newly-identified machines to the existing list WITHOUT duplicating: skip any that
+// match an existing machine by name or by overlapping region; append the genuinely new
+// ones with a unique id. Existing machines (and any names you've edited) are preserved.
 function mergeMachines(existing: MachineRegion[], incoming: MachineRegion[]): MachineRegion[] {
   const result = [...existing];
   const ids = new Set(result.map((m) => m.id));
   for (const inc of incoming) {
-    const idx = result.findIndex(
-      (m) => m.name.trim().toLowerCase() === inc.name.trim().toLowerCase(),
+    const dup = result.some(
+      (m) =>
+        m.name.trim().toLowerCase() === inc.name.trim().toLowerCase() ||
+        sameMachine(m.region, inc.region),
     );
-    if (idx >= 0) {
-      result[idx] = { ...result[idx], kind: inc.kind, region: inc.region, note: inc.note };
-      continue;
-    }
+    if (dup) continue;
     let id = inc.id;
     while (ids.has(id)) {
       id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${id}-${ids.size}`;
