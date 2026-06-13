@@ -1,0 +1,8 @@
+{
+  "id": 3,
+  "milestone": "Agent intelligence output",
+  "passedAt": "2026-06-13T19:48:18Z",
+  "verifier": "PASS",
+  "check": "npm test -- agent",
+  "evidence": "3/3 (full suite 8/8); catches planted M-102 stoppage via vision (not labels), drafts action + briefing + per-machine utilization; verifier reproduced detection independently"
+}

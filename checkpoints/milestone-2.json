@@ -1,0 +1,8 @@
+{
+  "id": 2,
+  "milestone": "Vision (plumbing)",
+  "passedAt": "2026-06-13T19:45:09Z",
+  "verifier": "PASS",
+  "check": "npm run eval",
+  "evidence": "24 frames, 100% local accuracy >= target 0.90, exit 0; verifier confirmed pixel-based (no label leakage); next build + tsc --noEmit clean"
+}
