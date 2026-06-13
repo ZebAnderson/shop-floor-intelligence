@@ -48,47 +48,6 @@ interface SRLike {
   stop(): void;
 }
 
-// Two machines are "the same" if their boxes overlap meaningfully (or one's center sits
-// inside the other) — so re-identifying the same physical machine (even with a different
-// auto-guessed name) doesn't create a duplicate.
-function sameMachine(a: Region, b: Region): boolean {
-  const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
-  const iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
-  const inter = ix * iy;
-  const iou = inter > 0 ? inter / (a.w * a.h + b.w * b.h - inter) : 0;
-  const acx = a.x + a.w / 2;
-  const acy = a.y + a.h / 2;
-  const bcx = b.x + b.w / 2;
-  const bcy = b.y + b.h / 2;
-  const centerIn =
-    (acx >= b.x && acx <= b.x + b.w && acy >= b.y && acy <= b.y + b.h) ||
-    (bcx >= a.x && bcx <= a.x + a.w && bcy >= a.y && bcy <= a.y + a.h);
-  return iou > 0.25 || centerIn;
-}
-
-// Add newly-identified machines to the existing list WITHOUT duplicating: skip any that
-// match an existing machine by name or by overlapping region; append the genuinely new
-// ones with a unique id. Existing machines (and any names you've edited) are preserved.
-function mergeMachines(existing: MachineRegion[], incoming: MachineRegion[]): MachineRegion[] {
-  const result = [...existing];
-  const ids = new Set(result.map((m) => m.id));
-  for (const inc of incoming) {
-    const dup = result.some(
-      (m) =>
-        m.name.trim().toLowerCase() === inc.name.trim().toLowerCase() ||
-        sameMachine(m.region, inc.region),
-    );
-    if (dup) continue;
-    let id = inc.id;
-    while (ids.has(id)) {
-      id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${id}-${ids.size}`;
-    }
-    ids.add(id);
-    result.push({ ...inc, id });
-  }
-  return result;
-}
-
 export default function SetupPage() {
   const router = useRouter();
   const [cameras, setCameras] = useState<Source[]>([]);
@@ -201,6 +160,8 @@ export default function SetupPage() {
       return;
     }
     setFrame(cap.toDataURL("image/jpeg", 0.85));
+    setMachines([]); // fresh frame — drop any stale boxes; Identify detects them anew
+    setError(null);
     stopPreview();
   }
 
@@ -224,8 +185,9 @@ export default function SetupPage() {
         setError("No machines identified — try a clearer frame or a more specific description.");
         return; // keep the description so it can be edited
       }
-      // Append to the list (don't replace) and clear the prompt for the next machine.
-      setMachines((prev) => mergeMachines(prev, incoming));
+      // Replace with the fresh detection (auto-detect finds every machine in the frame).
+      // No stale entries, no duplicates — edit names / add any it missed below.
+      setMachines(incoming);
       setDescription("");
     } catch {
       setError("Network error contacting /api/setup.");
@@ -436,14 +398,14 @@ export default function SetupPage() {
         <div className="controls">
           <button onClick={toggleVoice} aria-pressed={listening}>{listening ? "● Listening… (tap to stop)" : "🎤 Speak"}</button>
           <button className="primary" onClick={identify} disabled={!frame || identifying}>
-            {identifying ? "Identifying…" : machines.length > 0 ? "Identify & add" : "Identify machines"}
+            {identifying ? "Identifying…" : machines.length > 0 ? "Re-identify" : "Identify machines"}
           </button>
         </div>
         <p className="note">
           <b>Leave it blank</b> to auto-detect and name every machine, or describe some to set
-          the names you want. Either way, Identify finds <b>all</b> the machines in the frame
-          and <b>adds</b> them to the list below (existing ones stay); the field clears for the
-          next batch, and re-describing a machine by the same name updates it.
+          the names you want. Identify <b>replaces</b> the list below with everything it finds in
+          this frame — then rename, drag/resize the boxes, or <b>+ Add machine</b> for anything
+          it missed. Re-identify anytime to redo.
         </p>
       </section>
 
