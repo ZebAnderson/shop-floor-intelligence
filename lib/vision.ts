@@ -54,8 +54,9 @@ const SYSTEM_PROMPT =
   "- running: actively cycling or cutting — moving spindle/tool, chips/sparks, visible motion, or a GREEN andon stack light lit.\n" +
   "- idle: powered but not working — no motion, no operator, or an AMBER andon light lit.\n" +
   "- stopped: halted or faulted — machine off, a fault condition, or a RED andon light lit.\n" +
-  "- obstructed: you CANNOT tell what the camera is looking at — the lens is blocked or covered, the frame is too dark, blurred, or shows a hand/object right against the lens, or there is no machine in view. When in doubt because the view is unusable, choose obstructed; do NOT guess a machine state from an unusable frame.\n" +
-  "If a colored andon stack light is clearly visible it is the most reliable signal (red->stopped, amber->idle, green->running). " +
+  "- obstructed: choose this ONLY when the view is genuinely UNUSABLE — the lens is physically blocked or covered, a hand/object is pressed against it, or the frame is near-black, a near-uniform solid color, or so dark/blurred that essentially nothing is discernible. A normal scene is NOT obstructed: a dark shop, a wide or angled or grainy view, an unfamiliar machine, or SEVERAL machines in frame all still count as usable — classify the state you can see. Do not use obstructed just because the scene is busy, dim, or ambiguous.\n" +
+  "If several machines are visible, report the state of the most prominent one (largest / nearest / clearest). " +
+  "If a colored andon stack light is visible it is the most reliable signal (red->stopped, amber->idle, green->running). " +
   "Reply with EXACTLY one lowercase word: running, idle, stopped, or obstructed.";
 
 // Core Claude path: classify a base64 PNG. No fs, so it is safe in a serverless
@@ -75,7 +76,7 @@ export async function classifyImageClaude(
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: mediaType, data: base64Image } },
-          { type: "text", text: "What is the machine's state? Answer one word: running, idle, or stopped." },
+          { type: "text", text: "What is the machine's state? Reply one word — running, idle, stopped, or obstructed (use obstructed only if the view is genuinely unusable)." },
         ],
       },
     ],
